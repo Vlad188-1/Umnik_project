@@ -102,10 +102,6 @@ class Ui_MainWindow():
         self.line.setFrameShape(QtWidgets.QFrame.VLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
-        # self.ButtonShowNanStatistics = QtWidgets.QPushButton(self.centralwidget)
-        # self.ButtonShowNanStatistics.setText("Показать Nan статистику")
-
-
         # TABLE: Layout for table
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 70, 700, 411))

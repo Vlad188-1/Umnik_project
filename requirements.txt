@@ -1,0 +1,9 @@
+pandas
+plotly
+pyqt5
+pyqtwebengine
+scikit-learn
+torch
+torchvision
+rich
+tqdm

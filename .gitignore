@@ -1,0 +1,9 @@
+projects
+Train.csv
+Nan.html
+**/__pycache__/
+.DS_Store
+**/.DS_Store
+/best_model.pt
+.idea
+app.ui

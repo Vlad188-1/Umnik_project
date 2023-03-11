@@ -18,7 +18,7 @@ class CustomDataset(Dataset):
 
 class NN(nn.Module):
 
-    def __init__(self, in_features):
+    def __init__(self, in_features, num_classes):
         super(NN, self).__init__()
         self.in_features = in_features
 
@@ -30,7 +30,7 @@ class NN(nn.Module):
         self.dropout_3 = nn.Dropout(p=0.4)
         self.layer_4 = nn.Linear(in_features=128, out_features=64)
         self.dropout_4 = nn.Dropout(p=0.5)
-        self.layer_5 = nn.Linear(in_features=64, out_features=1)
+        self.layer_5 = nn.Linear(in_features=64, out_features=num_classes)
 
     def forward(self, x):
         x = self.layer_1(x)

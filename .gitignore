@@ -7,3 +7,5 @@ Nan.html
 /best_model.pt
 .idea
 app.ui
+runs
+plots

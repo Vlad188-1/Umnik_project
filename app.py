@@ -8,15 +8,17 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QPushButton, QLabel, QLineEdit, QComboBox
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from sklearn.model_selection import train_test_split
 from datetime import datetime
 from pathlib import Path
 
 # My imports
 from utils import Process, Constants, FeatureEngineWindow, DeleteNanWindow
+from src import CustomDataset, NN, train_and_validation
+from utils.PlotGraphics import Plots
 
 # Import for training
-from src import CustomDataset, NN, train_and_validation
 import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam, SGD
@@ -53,6 +55,7 @@ class Ui_MainWindow():
     def __init__(self):
         self.filename = ""
         self.data = None
+        self.model_table = None
         self.separators = [";", ":", ","]
         self.true_checkboxes_text = []
         self.data_copy = None
@@ -80,6 +83,8 @@ class Ui_MainWindow():
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         MainWindow.setCentralWidget(self.centralwidget)
+
+        self.web = QWebEngineView(self.centralwidget)
 
         # self.web = QWebEngineView(self.centralwidget)
         # self.browser = QtWebEngineWidgets.QWebEngineView(self.centralwidget)
@@ -257,11 +262,18 @@ class Ui_MainWindow():
         self.comboboxSelectTargetVariable = QComboBox(self.centralwidget)
         self.comboboxSelectTargetVariable.setGeometry(1050, 10, 150, 50)
 
+        # TABLE: Plot distribution target variable
+        self.buttonDistributionTargetVariable = QPushButton(self.centralwidget)
+        self.buttonDistributionTargetVariable.setGeometry(1100, 200, 200, 30)
+        self.buttonDistributionTargetVariable.setText("Распределение целевой переменной")
+        self.buttonDistributionTargetVariable.setStyleSheet(Constants.DELETE_NAN)
+        self.buttonDistributionTargetVariable.clicked.connect(self.buttonPlotDistributionTargetVariable)
+
         # TABLE: Split size
         self.labelSplitSize = QLabel(self.centralwidget)
         self.labelSplitSize.setText("<b>Соотношение разбиения выборки</b>")
         self.labelSplitSize.setGeometry(770, 60, 250, 50)
-        self.comboboxSplitSize =QComboBox(self.centralwidget)
+        self.comboboxSplitSize = QComboBox(self.centralwidget)
         self.comboboxSplitSize.setGeometry(1050, 60, 150, 50)
         self.comboboxSplitSize.addItems(["70:30", "75:25", "80:20", "85:15", "90:10"])
         self.comboboxSplitSize.setCurrentIndex(2)
@@ -362,7 +374,6 @@ class Ui_MainWindow():
         self.menubar.addAction(self.menuOpen.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
 
-        #MainWindow.setMenuBar(self.menubar)
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -390,8 +401,8 @@ class Ui_MainWindow():
     def on_selection_changed(self, selected, deselected):
         for item in selected.indexes():
             print(item.row(), item.column())
-            print(self.data.iloc[item.row():item.row()+1, item.column():item.column()+1])
-            print(type(self.data.iloc[item.row():item.row()+1, item.column():item.column()+1]))
+            print(self.data.iloc[item.row():item.row() + 1, item.column():item.column() + 1])
+            print(type(self.data.iloc[item.row():item.row() + 1, item.column():item.column() + 1]))
 
     # MENU: Function for open file menu
     def openFileDialog(self):
@@ -401,11 +412,12 @@ class Ui_MainWindow():
             self.data = pd.read_csv(self.filename, sep=self.commobox_separators.currentText())
         except:
             self.data = pd.DataFrame({"empty": [""]})
-        self.model = TableModel(self.data)
-        self.table.setModel(self.model)
+        self.model_table = TableModel(self.data)
+        self.table.setModel(self.model_table)
         self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
         self.num_rows.setText("<b>Количество строк:</b> " + str(len(self.data)) if self.data is not None else "0")
-        self.num_columns.setText("<b>Количество столбцов: </b>" + str(len(self.data.columns)) if self.data is not None else "0")
+        self.num_columns.setText(
+            "<b>Количество столбцов: </b>" + str(len(self.data.columns)) if self.data is not None else "0")
         self.data_copy = self.data.copy()
         if self.data is not None:
             self.list_checkboxes.clear()
@@ -428,14 +440,14 @@ class Ui_MainWindow():
         self.thread.start()
         self.data = self.thread.data
         if self.data is not None:
-            self.model = TableModel(self.data)
-            self.table.setModel(self.model)
+            self.model_table = TableModel(self.data)
+            self.table.setModel(self.model_table)
             self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
         else:
             QtWidgets.QMessageBox.about(MainWindow, "Error", "Нет данных для предобработки!")
 
     def setProgressVal(self, val):
-        #self.button.setEnabled(False)
+        # self.button.setEnabled(False)
         # self.pbar.setAlignment(Qt.AlignCenter)
         self.pbar_process.setValue(val)
         if ceil(val) >= 100:
@@ -449,8 +461,8 @@ class Ui_MainWindow():
         except:
             self.data = pd.DataFrame({"empty": [""]})
             QtWidgets.QMessageBox.about(MainWindow, "Error", "Файл прочтен некорректно. Попробуйте изменить сепаратор!")
-        self.model = TableModel(self.data)
-        self.table.setModel(self.model)
+        self.model_table = TableModel(self.data)
+        self.table.setModel(self.model_table)
         self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
         self.num_rows.setText("<b>Количество строк:</b> " + str(len(self.data)) if self.data is not None else "0")
         self.num_columns.setText(
@@ -480,8 +492,8 @@ class Ui_MainWindow():
                 false_cols.append(true_cols)
         if self.data is not None:
             self.data = self.data_copy[true_cols]
-            self.model = TableModel(self.data)
-            self.table.setModel(self.model)
+            self.model_table = TableModel(self.data)
+            self.table.setModel(self.model_table)
             self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
             self.num_rows.setText("<b>Количество строк:</b> " + str(len(self.data)) if self.data is not None else "0")
             self.num_columns.setText(
@@ -525,10 +537,9 @@ class Ui_MainWindow():
 
     # TABLE: Function to confirm changes
     def confirmChanges(self, data):  # <-- This is the main window's slot
-        #self.label.setText(f"Current URL: {url} + {self.base_line}")
         self.data = data
-        self.model = TableModel(self.data)
-        self.table.setModel(self.model)
+        self.model_table = TableModel(self.data)
+        self.table.setModel(self.model_table)
 
         self.num_rows.setText("<b>Количество строк:</b> " + str(len(self.data)) if self.data is not None else "0")
         self.num_columns.setText("<b>Количество столбцов: </b>" + str(len(self.data.columns)) if self.data \
@@ -537,39 +548,46 @@ class Ui_MainWindow():
         self.comboboxSelectTargetVariable.addItems(self.data.columns)
         # self.update_list_checkboxes()
 
+    # TABLE: Function to plot distribution target variable
+    def buttonPlotDistributionTargetVariable(self):
+        text_y = self.comboboxSelectTargetVariable.currentText()
+        y = self.data[text_y]
+        Plots.plotDistributedTargetVariable(y)
+        # file_path = Path("plots", "TargetVariable.html")
+        file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "plots/TargetVariable.html"))
+        self.web.load(QtCore.QUrl.fromLocalFile(file_path))
+        self.web.show()
+
     # TABLE: Function to save prepared dataset
     def SavePreparedDataset(self):
-        # _, test_size = self.comboboxSplitSize.currentText().split(":")
-        # x_train, x_valid, y_train, y_valid = train_test_split(
-        #     self.data.drop([self.comboboxSelectTargetVariable.currentText()], axis=1),
-        #     self.data[self.comboboxSelectTargetVariable.currentText()], shuffle=True, test_size=test_size,
-        #     stratify=self.data[self.comboboxSelectTargetVariable.currentText()], random_state=12)
-        # time_now = datetime.now().strftime("%m/%d/%Y_%H:%m")
+        if self.data is not None:
+            if not self.data.isnull().values.any():
+                dialog = QtWidgets.QFileDialog(None, caption='Data Log File Dir')
+                dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+                dialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
+                dialog.setDirectory(str(Path().cwd() / Path("projects")))
+                dialog.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+                dialog.setLabelText(QtWidgets.QFileDialog.Accept, "Save")
 
-        dialog = QtWidgets.QFileDialog(None, caption='Data Log File Dir')
-        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
-        dialog.setDirectory(str(Path().cwd() / Path("projects")))
-        # dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-        dialog.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
-        dialog.setLabelText(QtWidgets.QFileDialog.Accept, "Save")
-        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
-            project_dir = dialog.selectedFiles()[-1]
-            Path(project_dir).mkdir(exist_ok=True)
-            # print(logdir)
-            if self.data is not None:
-                _, test_size = self.comboboxSplitSize.currentText().split(":")
-                y = self.data[self.comboboxSelectTargetVariable.currentText()]
-                x = self.data.drop([self.comboboxSelectTargetVariable.currentText()], axis=1)
-                x_train, x_valid, y_train, y_valid = train_test_split(
-                    x, y, shuffle=True, test_size=int(test_size)/100,
-                    stratify=self.data[self.comboboxSelectTargetVariable.currentText()], random_state=12)
-                time_now = datetime.now().strftime("%m/%d/%Y_%H:%m")
+                if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
+                    project_dir = dialog.selectedFiles()[-1]
+                    Path(project_dir).mkdir(exist_ok=True)
+                    # if self.data is not None:
+                    #     if not self.data.isnull().values.any():
+                    _, test_size = self.comboboxSplitSize.currentText().split(":")
+                    y = self.data[self.comboboxSelectTargetVariable.currentText()]
+                    x = self.data.drop([self.comboboxSelectTargetVariable.currentText()], axis=1)
+                    x_train, x_valid, y_train, y_valid = train_test_split(
+                        x, y, shuffle=True, test_size=int(test_size) / 100,
+                        stratify=self.data[self.comboboxSelectTargetVariable.currentText()], random_state=12)
 
-                x_train.to_csv(Path(project_dir, "X_train.csv"), index=False)
-                x_valid.to_csv(Path(project_dir, "X_valid.csv"), index=False)
-                y_train.to_csv(Path(project_dir, "y_train.csv"), index=False)
-                y_valid.to_csv(Path(project_dir, "y_valid.csv"), index=False)
+                    x_train.to_csv(Path(project_dir, "X_train.csv"), index=False)
+                    x_valid.to_csv(Path(project_dir, "X_valid.csv"), index=False)
+                    y_train.to_csv(Path(project_dir, "y_train.csv"), index=False)
+                    y_valid.to_csv(Path(project_dir, "y_valid.csv"), index=False)
+            else:
+                QtWidgets.QMessageBox.about(MainWindow, "Error",
+                                            "Данные содержат NaN значения. Удалите их перед сохранением проекта")
 
     # TABLE: Function to load prepared dataset
     def loadPreparedData(self):
@@ -592,8 +610,14 @@ class Ui_MainWindow():
                                       torch.FloatTensor(self.y_train.values))
         val_dataset = CustomDataset(torch.FloatTensor(self.x_valid.values),
                                     torch.FloatTensor(self.y_valid.values))
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = NN(in_features=self.x_train.shape[1]).to(device)
+
+        if torch.cuda.is_available():
+            device = "cuda"
+        else:
+            device = "cpu"
+
+        column_name = self.y_train.columns[-1]
+        model = NN(in_features=self.x_train.shape[1], num_classes=1).to(device)
         criterion = BCEWithLogitsLoss()
 
         if self.optimizator_combobox.currentText() == "Adam":
@@ -601,24 +625,14 @@ class Ui_MainWindow():
         elif self.optimizator_combobox.currentText() == "SGD":
             optimizer = SGD(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
 
-        # train_dataloader = DataLoader(dataset=train_dataset,
-        #                               batch_size=int(self.batch_size_lineEdit.text()),
-        #                               shuffle=False)
-        # val_dataloader = DataLoader(dataset=val_dataset,
-        #                             batch_size=int(self.batch_size_lineEdit.text()),
-        #                             shuffle=False)
         train_and_validation(model=model,
                              train_dataset=train_dataset,
                              val_dataset=val_dataset,
                              batch_size=int(self.batch_size_lineEdit.text()),
                              epochs=int(self.epochs_lineEdit.text()),
-                             device="cuda" if torch.cuda.is_available() else "cpu",
+                             device=device,
                              criterion=criterion,
                              optimizer=optimizer)
-
-    # def unselectAll(self):
-    #     for i in range(self.list_checkboxes.count()):
-    #         self.list_checkboxes.item(i).setCheckState(not Qt.Checked)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -626,7 +640,6 @@ class Ui_MainWindow():
 
         # MENU: Menu
         self.menuOpen.setTitle(_translate("MainWindow", "File"))
-        #self.menuOpen.sty
         self.menuEdit.setTitle(_translate("MainWindow", "Edit"))
 
         # MENU: Actions for menu
@@ -636,11 +649,12 @@ class Ui_MainWindow():
 
         # MENU: Buttons
         self.actionOpen.triggered.connect(self.openFileDialog)
-        #self.commobox_separators.currentIndexChanged['QString'].connect(self.updateSeparatorTable)
+        # self.commobox_separators.currentIndexChanged['QString'].connect(self.updateSeparatorTable)
 
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()

@@ -5,7 +5,7 @@ import os
 
 # PyQt5 imports
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QPushButton, QLabel, QLineEdit, QComboBox
 from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -24,6 +24,7 @@ import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.tensorboard import SummaryWriter
 
 
 class TableModel(QtCore.QAbstractTableModel):
@@ -49,6 +50,16 @@ class TableModel(QtCore.QAbstractTableModel):
                 return str(self._data.columns[section])
             if orientation == Qt.Vertical:
                 return str(self._data.index[section])
+
+
+class TrainModel(QThread):
+    def __init__(self, train_function, training_params):
+        super(QThread, self).__init__()
+        self.train_function = train_function
+        self.training_params = training_params
+
+    def run(self):
+        self.train_function(**self.training_params)
 
 
 class Ui_MainWindow():
@@ -668,41 +679,60 @@ class Ui_MainWindow():
         else:
             device = "cpu"
 
+        writer = SummaryWriter()
+        criterion_NN = BCEWithLogitsLoss()
+
         if self.combobox_models.currentText() == "AE_NN":
-            model = AutoEncoder(in_features=self.x_train.shape[1]).to(device)
-            criterion = torch.nn.MSELoss()
+            model_AE = AutoEncoder(in_features=self.x_train.shape[1]).to(device)
+            model_NN = NN(in_features=model_AE.encoder.bottleneck_linear3.out_features,
+                          num_classes=1)
+            criterion_AE = torch.nn.MSELoss()
 
             if self.optimizator_combobox.currentText() == "Adam":
-                optimizer = Adam(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+                optimizer_NN = Adam(model_NN.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
             elif self.optimizator_combobox.currentText() == "SGD":
-                optimizer = SGD(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+                optimizer_NN = SGD(model_NN.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+            optimizer_AE = Adam(model_AE.parameters(), lr=0.001)
 
-            train_and_validation_autoencoder(model_AE=model,
-                                             train_dataset=train_dataset,
-                                             val_dataset=val_dataset,
-                                             batch_size=int(self.batch_size_lineEdit.text()),
-                                             epochs=int(self.epochs_lineEdit.text()),
-                                             device=device,
-                                             criterion=criterion,
-                                             optimizer=optimizer)
+            training_params = {"model_AE": model_AE,
+                               "model_NN": model_NN,
+                               "train_dataset": train_dataset,
+                               "val_dataset": val_dataset,
+                               "batch_size": int(self.batch_size_lineEdit.text()),
+                               "epochs_AE": int(self.epochs_lineEdit.text()),
+                               "epochs_NN": int(self.epochs_lineEdit.text()),
+                               "device": device,
+                               "criterion_AE": criterion_AE,
+                               "criterion_NN": criterion_NN,
+                               "optimizer_AE": optimizer_AE,
+                               "optimizer_NN": optimizer_NN,
+                               "writer": writer,
+                               "scheduler": None}
+
+            self.thread = TrainModel(train_and_validation_autoencoder, training_params)
+            self.thread.start()
+
         elif self.combobox_models.currentText() == "NN":
-            model = NN(in_features=self.x_train.shape[1], num_classes=1).to(device)
+            model_NN = NN(in_features=self.x_train.shape[1], num_classes=1).to(device)
 
             if self.optimizator_combobox.currentText() == "Adam":
-                optimizer = Adam(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+                optimizer_NN = Adam(model_NN.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
             elif self.optimizator_combobox.currentText() == "SGD":
-                optimizer = SGD(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+                optimizer_NN = SGD(model_NN.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
 
-            criterion = BCEWithLogitsLoss()
+            training_params = {"model": model_NN,
+                               "train_dataset": train_dataset,
+                               "val_dataset": val_dataset,
+                               "batch_size": int(self.batch_size_lineEdit.text()),
+                               "epochs": int(self.epochs_lineEdit.text()),
+                               "device": device,
+                               "criterion": criterion_NN,
+                               "optimizer": optimizer_NN,
+                               "writer": writer,
+                               "scheduler": None}
 
-            train_and_validation(model=model,
-                                 train_dataset=train_dataset,
-                                 val_dataset=val_dataset,
-                                 batch_size=int(self.batch_size_lineEdit.text()),
-                                 epochs=int(self.epochs_lineEdit.text()),
-                                 device=device,
-                                 criterion=criterion,
-                                 optimizer=optimizer)
+            self.thread = TrainModel(train_and_validation, training_params)
+            self.thread.start()
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

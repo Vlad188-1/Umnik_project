@@ -105,12 +105,30 @@ def plotTrainValidCurve(history, writer):
     fig.update_yaxes(row=1, col=2, nticks=10, tickfont=dict(size=20), gridcolor='lightgrey', zerolinecolor='lightgrey')
 
     fig.write_image(Path(writer.log_dir, "train_val_curve.jpg"))
-    # writer.logdir
-    # if Path(args.output).exists():
-    #     url_new = str(args.output)
-    #     fig.write_image(url_new + '/Train-valid-curve.png')
-    #
-    # else:
-    #     path = Path(args.output)
-    #     path.mkdir()
-    #     fig.write_image(str(path) + '/Train-valid-curve.png')
+
+
+def plotTrainValidCurveAE(history, writer):
+
+    loss = history['train_loss']
+    val_loss = history['val_loss']
+
+    epochs = np.arange(1, len(loss) + 1)
+
+    # Plot loss and accuracy curves
+    fig = make_subplots(rows=1, cols=1, subplot_titles=['$\Large\\textbf{Accuracy}$', '$\Large\\textbf{Loss}$'],
+                        vertical_spacing=0.1)
+
+    fig.add_trace(go.Scatter(x=epochs, y=loss, mode='lines', showlegend=False, marker_color='blue'), 1, 1)
+    fig.add_trace(go.Scatter(x=epochs, y=val_loss, mode='lines', showlegend=False, marker_color='red'), 1, 1)
+
+    fig.update_layout(plot_bgcolor='white', title=dict(text='<b>Обучение и валидация нейронной сети', x=0.5,
+                                                       font=dict(size=20)),
+                      legend=dict(font=dict(size=14)), height=550, width=1150, showlegend=True)
+    fig.update_xaxes(row=1, col=1, nticks=10, tickfont=dict(size=20), gridcolor='lightgrey', zerolinecolor='lightgrey',
+                     title=dict(text='Epochs', font=dict(size=23)))
+
+    fig.update_yaxes(row=1, col=1, nticks=10, tickfont=dict(size=20), gridcolor='lightgrey', zerolinecolor='lightgrey')
+
+    fig.write_image(Path(writer.log_dir, "train_val_curve_AE.jpg"))
+
+

@@ -1,6 +1,7 @@
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
+from collections import OrderedDict
 
 
 class CustomDataset(Dataset):
@@ -64,23 +65,27 @@ class AutoEncoder(nn.Module):
         out_layer_3_features = out_layer_2_features - 2
 
         self.encoder = nn.Sequential(
-            nn.Linear(in_features=self.in_features, out_features=out_layer_1_features),
-            nn.ReLU(),
-            nn.BatchNorm1d(out_layer_1_features),
-            nn.Linear(in_features=out_layer_1_features, out_features=out_layer_2_features),
-            nn.ReLU(),
-            nn.BatchNorm1d(out_layer_2_features),
-            nn.Linear(in_features=out_layer_2_features, out_features=out_layer_3_features),
-            nn.BatchNorm1d(out_layer_3_features),
+            OrderedDict([
+                ("linear1", nn.Linear(in_features=self.in_features, out_features=out_layer_1_features)),
+                ("relu1", nn.ReLU()),
+                ("batchnorm1", nn.BatchNorm1d(out_layer_1_features)),
+                ("linear2", nn.Linear(in_features=out_layer_1_features, out_features=out_layer_2_features)),
+                ("relu2", nn.ReLU()),
+                ("batchnorm2", nn.BatchNorm1d(out_layer_2_features)),
+                ("bottleneck_linear3", nn.Linear(in_features=out_layer_2_features, out_features=out_layer_3_features)),
+                ("batchnorm3", nn.BatchNorm1d(out_layer_3_features)),
+                ])
         )
         self.decoder = nn.Sequential(
-            nn.Linear(in_features=out_layer_3_features, out_features=out_layer_2_features),
-            nn.ReLU(),
-            nn.BatchNorm1d(out_layer_2_features),
-            nn.Linear(in_features=out_layer_2_features, out_features=out_layer_1_features),
-            nn.ReLU(),
-            nn.BatchNorm1d(out_layer_1_features),
-            nn.Linear(in_features=out_layer_1_features, out_features=self.in_features)
+            OrderedDict([
+                ("linear1", nn.Linear(in_features=out_layer_3_features, out_features=out_layer_2_features)),
+                ("relu1", nn.ReLU()),
+                ("batchnorm1", nn.BatchNorm1d(out_layer_2_features)),
+                ("linear2", nn.Linear(in_features=out_layer_2_features, out_features=out_layer_1_features)),
+                ("relu2", nn.ReLU()),
+                ("batchnorm2", nn.BatchNorm1d(out_layer_1_features)),
+                ("linear3", nn.Linear(in_features=out_layer_1_features, out_features=self.in_features))
+            ])
         )
 
     def forward(self, x):

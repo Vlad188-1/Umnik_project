@@ -5,11 +5,14 @@ from rich import print
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 from torch.optim import Adam
+
+import src.NN
 # My imports
 from src.NN import CustomDataset, DataLoader
 from src.Metrics import binary_acc
-from utils.PlotGraphics import plotTrainValidCurve
-from src.NN import NN
+from utils.PlotGraphics import plotTrainValidCurve, plotTrainValidCurveAE
+from src.NN import NN, AutoEncoder
+import yaml
 
 
 def train_and_validation(model,
@@ -20,21 +23,19 @@ def train_and_validation(model,
                          device: str,
                          criterion: torch.nn.modules.loss,
                          optimizer: torch.optim.Adam,
+                         writer: SummaryWriter,
                          scheduler=None):
-
     all_train_loss = []
     all_val_loss = []
     all_train_accuracy = []
     all_val_accuracy = []
     best_loss = inf
 
-    timestamp = datetime.now().strftime('%d%m%Y_%H%M%S')
-    writer = SummaryWriter()
-
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
 
     model = model.to(device)
+
     # Train
     for epoch in range(1, epochs + 1):
 
@@ -89,11 +90,12 @@ def train_and_validation(model,
 
         print(f"Epoch = [bold red]{epoch}/{epochs}[/bold red] | Train_loss = [bold yellow]{train_loss_per_batch:.5f} [/bold yellow] \
 | Accuracy_train = [bold yellow]{train_accuracy_per_batch:.5f}[/bold yellow] \
-| Val_loss = [bold green]{val_loss_per_batch:.5f}[/bold green] | Accuracy_val = [bold green]{val_accuracy_per_batch:.5f}[/bold green]", end="\r")
+| Val_loss = [bold green]{val_loss_per_batch:.5f}[/bold green] | Accuracy_val = [bold green]{val_accuracy_per_batch:.5f}[/bold green]",
+              end="\r")
 
         if val_loss_per_batch < best_loss:
             best_loss = val_loss_per_batch
-            model_path = Path(writer.log_dir, f'best_model.pt')
+            model_path = Path(writer.log_dir, f'best_model_NN.pt')
             torch.save(model.state_dict(), model_path)
 
         history = {"train_loss": all_train_loss,
@@ -103,47 +105,48 @@ def train_and_validation(model,
                    }
         if epoch % 5 == 0:
             plotTrainValidCurve(history, writer=writer)
+    #
+    # return history
 
-    return history
 
-
-def train_and_validation_autoencoder(model_AE,
-                                    train_dataset: CustomDataset,
-                                    val_dataset: CustomDataset,
-                                    batch_size: int,
-                                    epochs: int,
-                                    device: str,
-                                    criterion: torch.nn.modules.loss,
-                                    optimizer: torch.optim.Adam,
-                                    scheduler=None):
+def train_and_validation_autoencoder(model_AE: AutoEncoder,
+                                     model_NN: NN,
+                                     train_dataset: CustomDataset,
+                                     val_dataset: CustomDataset,
+                                     batch_size: int,
+                                     epochs_AE: int,
+                                     epochs_NN: int,
+                                     device: str,
+                                     criterion_AE: torch.nn.modules.loss,
+                                     criterion_NN: torch.nn.modules.loss,
+                                     optimizer_AE: torch.optim.Adam,
+                                     optimizer_NN: torch.optim.Adam,
+                                     writer: SummaryWriter,
+                                     scheduler=None):
     all_train_AE_loss = []
     all_val_AE_loss = []
-    # all_train_accuracy = []
-    # all_val_accuracy = []
     best_loss = inf
-
-    timestamp = datetime.now().strftime('%d%m%Y_%H%M%S')
-    writer = SummaryWriter()
 
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
 
     model_AE = model_AE.to(device)
     print("Начало обучения автоэкнодера...")
+
     # Train
-    for epoch in range(1, epochs + 1):
+    for epoch in range(1, epochs_AE + 1):
 
         train_loss = 0
 
         for inputs, _ in train_dataloader:
             inputs = inputs.to(device)
 
-            optimizer.zero_grad()
+            optimizer_AE.zero_grad()
             output = model_AE(inputs)
 
-            loss = criterion(output, inputs)
+            loss = criterion_AE(output, inputs)
             loss.backward()
-            optimizer.step()
+            optimizer_AE.step()
             train_loss += loss.item()
         train_loss_per_batch = train_loss / len(train_dataloader)
         all_train_AE_loss.append(train_loss_per_batch)
@@ -156,24 +159,24 @@ def train_and_validation_autoencoder(model_AE,
             inputs = inputs.to(device)
 
             output = model_AE(inputs)
-            loss = criterion(output, inputs)
+            loss = criterion_AE(output, inputs)
             val_loss += loss.item()
         val_loss_per_batch = val_loss / len(val_dataloader)
         all_val_AE_loss.append(val_loss_per_batch)
 
-        print(f"Epoch = [bold red]{epoch}/{epochs}[/bold red] | Train_loss = [bold yellow]{train_loss_per_batch:.5f} [/bold yellow] \
+        print(f"Epoch = [bold red]{epoch}/{epochs_AE}[/bold red] | Train_loss = [bold yellow]{train_loss_per_batch:.5f} [/bold yellow] \
     | Val_loss = [bold green]{val_loss_per_batch:.5f}[/bold green]", end="\r")
 
         if val_loss_per_batch < best_loss:
             best_loss = val_loss_per_batch
-            model_path = Path(writer.log_dir, f'best_model.pt')
+            model_path = Path(writer.log_dir, f'best_model_AE.pt')
             torch.save(model_AE.state_dict(), model_path)
 
         history = {"train_loss": all_train_AE_loss,
                    "val_loss": all_val_AE_loss,
                    }
-        # if epoch % 5 == 0:
-        #     plotTrainValidCurve(history, writer=writer)
+        if epoch % 5 == 0:
+            plotTrainValidCurveAE(history, writer=writer)
     print("")
 
     # Train simple NN
@@ -186,16 +189,17 @@ def train_and_validation_autoencoder(model_AE,
     train_dataset_encoder = CustomDataset(x_train_encoder, train_dataset.y_data)
     val_dataset_encoder = CustomDataset(x_val_encoder, val_dataset.y_data)
 
-    model_NN = NN(in_features=x_train_encoder.shape[1], num_classes=1).to(device)
+    # model_NN = NN(in_features=x_train_encoder.shape[1], num_classes=1).to(device)
 
-    optimizer = Adam(model_NN.parameters(), lr=0.0001)
+    # optimizer = Adam(model_NN.parameters(), lr=0.0001)
 
     print("[bold white]Начало обучения полносвязной сети...")
-    history_NN = train_and_validation(model=model_NN,
-                                   train_dataset=train_dataset_encoder,
-                                   val_dataset=val_dataset_encoder,
-                                   batch_size=batch_size,
-                                   epochs=epochs,
-                                   device=device,
-                                   criterion=torch.nn.BCEWithLogitsLoss(),
-                                   optimizer=optimizer)
+    train_and_validation(model=model_NN,
+                         train_dataset=train_dataset_encoder,
+                         val_dataset=val_dataset_encoder,
+                         batch_size=batch_size,
+                         epochs=epochs_NN,
+                         device=device,
+                         criterion=criterion_NN,
+                         optimizer=optimizer_NN,
+                         writer=writer)

@@ -15,8 +15,9 @@ from pathlib import Path
 
 # My imports
 from utils import Process, Constants, FeatureEngineWindow, DeleteNanWindow
-from src import CustomDataset, NN, train_and_validation
+from src import CustomDataset, NN, train_and_validation, AutoEncoder, train_and_validation_autoencoder
 from utils.PlotGraphics import Plots
+import numpy as np
 
 # Import for training
 import torch
@@ -353,9 +354,19 @@ class Ui_MainWindow():
         self.learning_rate_lineEdit.setText("0.0001")
         self.learning_rate_lineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
+        # MODEL: Select model
+        self.model_label = QLabel(self.centralwidgetTrain)
+        self.model_label.setText("Архитектура модели")
+        self.model_label.setGeometry(760, 420, 200, 50)
+
+        self.combobox_models = QComboBox(self.centralwidgetTrain)
+        self.combobox_models.setGeometry(900, 423, 100, 50)
+        self.combobox_models.addItems(["NN", "AE_NN"])
+        self.combobox_models.setCurrentIndex(1)
+
         # MODEL: Run model
         self.button_runModel = QPushButton(self.centralwidgetTrain)
-        self.button_runModel.setGeometry(760, 460, 200, 30)
+        self.button_runModel.setGeometry(760, 480, 200, 30)
         self.button_runModel.setText("Запустить обучение")
         self.button_runModel.setStyleSheet(Constants.UPDATE_TABLE_BUTTON_STYLE)
         self.button_runModel.clicked.connect(self.runModel)
@@ -657,23 +668,41 @@ class Ui_MainWindow():
         else:
             device = "cpu"
 
-        column_name = self.y_train.columns[-1]
-        model = NN(in_features=self.x_train.shape[1], num_classes=1).to(device)
-        criterion = BCEWithLogitsLoss()
+        if self.combobox_models.currentText() == "AE_NN":
+            model = AutoEncoder(in_features=self.x_train.shape[1]).to(device)
+            criterion = torch.nn.MSELoss()
 
-        if self.optimizator_combobox.currentText() == "Adam":
-            optimizer = Adam(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
-        elif self.optimizator_combobox.currentText() == "SGD":
-            optimizer = SGD(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+            if self.optimizator_combobox.currentText() == "Adam":
+                optimizer = Adam(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+            elif self.optimizator_combobox.currentText() == "SGD":
+                optimizer = SGD(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
 
-        train_and_validation(model=model,
-                             train_dataset=train_dataset,
-                             val_dataset=val_dataset,
-                             batch_size=int(self.batch_size_lineEdit.text()),
-                             epochs=int(self.epochs_lineEdit.text()),
-                             device=device,
-                             criterion=criterion,
-                             optimizer=optimizer)
+            train_and_validation_autoencoder(model_AE=model,
+                                             train_dataset=train_dataset,
+                                             val_dataset=val_dataset,
+                                             batch_size=int(self.batch_size_lineEdit.text()),
+                                             epochs=int(self.epochs_lineEdit.text()),
+                                             device=device,
+                                             criterion=criterion,
+                                             optimizer=optimizer)
+        elif self.combobox_models.currentText() == "NN":
+            model = NN(in_features=self.x_train.shape[1], num_classes=1).to(device)
+
+            if self.optimizator_combobox.currentText() == "Adam":
+                optimizer = Adam(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+            elif self.optimizator_combobox.currentText() == "SGD":
+                optimizer = SGD(model.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
+
+            criterion = BCEWithLogitsLoss()
+
+            train_and_validation(model=model,
+                                 train_dataset=train_dataset,
+                                 val_dataset=val_dataset,
+                                 batch_size=int(self.batch_size_lineEdit.text()),
+                                 epochs=int(self.epochs_lineEdit.text()),
+                                 device=device,
+                                 criterion=criterion,
+                                 optimizer=optimizer)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

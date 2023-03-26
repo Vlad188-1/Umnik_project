@@ -51,3 +51,39 @@ class NN(nn.Module):
 
         x = self.layer_5(x)
         return x
+
+
+class AutoEncoder(nn.Module):
+
+    def __init__(self, in_features):
+        super(AutoEncoder, self).__init__()
+        self.in_features = in_features
+
+        out_layer_1_features = self.in_features - 2
+        out_layer_2_features = out_layer_1_features - 2
+        out_layer_3_features = out_layer_2_features - 2
+
+        self.encoder = nn.Sequential(
+            nn.Linear(in_features=self.in_features, out_features=out_layer_1_features),
+            nn.ReLU(),
+            nn.BatchNorm1d(out_layer_1_features),
+            nn.Linear(in_features=out_layer_1_features, out_features=out_layer_2_features),
+            nn.ReLU(),
+            nn.BatchNorm1d(out_layer_2_features),
+            nn.Linear(in_features=out_layer_2_features, out_features=out_layer_3_features),
+            nn.BatchNorm1d(out_layer_3_features),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(in_features=out_layer_3_features, out_features=out_layer_2_features),
+            nn.ReLU(),
+            nn.BatchNorm1d(out_layer_2_features),
+            nn.Linear(in_features=out_layer_2_features, out_features=out_layer_1_features),
+            nn.ReLU(),
+            nn.BatchNorm1d(out_layer_1_features),
+            nn.Linear(in_features=out_layer_1_features, out_features=self.in_features)
+        )
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded

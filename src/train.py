@@ -4,10 +4,12 @@ from numpy import inf
 from rich import print
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
+from torch.optim import Adam
 # My imports
 from src.NN import CustomDataset, DataLoader
 from src.Metrics import binary_acc
 from utils.PlotGraphics import plotTrainValidCurve
+from src.NN import NN
 
 
 def train_and_validation(model,
@@ -103,3 +105,97 @@ def train_and_validation(model,
             plotTrainValidCurve(history, writer=writer)
 
     return history
+
+
+def train_and_validation_autoencoder(model_AE,
+                                    train_dataset: CustomDataset,
+                                    val_dataset: CustomDataset,
+                                    batch_size: int,
+                                    epochs: int,
+                                    device: str,
+                                    criterion: torch.nn.modules.loss,
+                                    optimizer: torch.optim.Adam,
+                                    scheduler=None):
+    all_train_AE_loss = []
+    all_val_AE_loss = []
+    # all_train_accuracy = []
+    # all_val_accuracy = []
+    best_loss = inf
+
+    timestamp = datetime.now().strftime('%d%m%Y_%H%M%S')
+    writer = SummaryWriter()
+
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False)
+    val_dataloader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
+
+    model_AE = model_AE.to(device)
+    print("Начало обучения автоэкнодера...")
+    # Train
+    for epoch in range(1, epochs + 1):
+
+        train_loss = 0
+
+        for inputs, _ in train_dataloader:
+            inputs = inputs.to(device)
+
+            optimizer.zero_grad()
+            output = model_AE(inputs)
+
+            loss = criterion(output, inputs)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item()
+        train_loss_per_batch = train_loss / len(train_dataloader)
+        all_train_AE_loss.append(train_loss_per_batch)
+
+        # Validation
+        val_loss = 0
+
+        model_AE.eval()
+        for inputs, _ in val_dataloader:
+            inputs = inputs.to(device)
+
+            output = model_AE(inputs)
+            loss = criterion(output, inputs)
+            val_loss += loss.item()
+        val_loss_per_batch = val_loss / len(val_dataloader)
+        all_val_AE_loss.append(val_loss_per_batch)
+
+        print(f"Epoch = [bold red]{epoch}/{epochs}[/bold red] | Train_loss = [bold yellow]{train_loss_per_batch:.5f} [/bold yellow] \
+    | Val_loss = [bold green]{val_loss_per_batch:.5f}[/bold green]", end="\r")
+
+        if val_loss_per_batch < best_loss:
+            best_loss = val_loss_per_batch
+            model_path = Path(writer.log_dir, f'best_model.pt')
+            torch.save(model_AE.state_dict(), model_path)
+
+        history = {"train_loss": all_train_AE_loss,
+                   "val_loss": all_val_AE_loss,
+                   }
+        # if epoch % 5 == 0:
+        #     plotTrainValidCurve(history, writer=writer)
+    print("")
+
+    # Train simple NN
+    model_encoder = model_AE.encoder.to(device)
+
+    with torch.no_grad():
+        x_train_encoder = model_encoder(train_dataset.x_data)
+        x_val_encoder = model_encoder(val_dataset.x_data)
+
+    train_dataset_encoder = CustomDataset(x_train_encoder, train_dataset.y_data)
+    val_dataset_encoder = CustomDataset(x_val_encoder, val_dataset.y_data)
+
+    model_NN = NN(in_features=x_train_encoder.shape[1], num_classes=1).to(device)
+
+    optimizer = Adam(model_NN.parameters(), lr=0.0001)
+
+    print("[bold white]Начало обучения полносвязной сети...")
+    history_NN = train_and_validation(model=model_NN,
+                                   train_dataset=train_dataset_encoder,
+                                   val_dataset=val_dataset_encoder,
+                                   batch_size=batch_size,
+                                   epochs=epochs,
+                                   device=device,
+                                   criterion=torch.nn.BCEWithLogitsLoss(),
+                                   optimizer=optimizer)

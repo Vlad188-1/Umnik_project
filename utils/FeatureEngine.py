@@ -14,7 +14,7 @@ class FeatureEngineWindow(QtWidgets.QMainWindow):
         self.features = ['Возведение в степень 2',
                          'Возведение в степень 3',
                          'Дифференцирование',
-                         'Перемножение признаков'
+                         'Перемножение признаков',
                          "One hot кодирование"]
         self.data = data
         self.squared_features = dict()
@@ -73,31 +73,30 @@ class FeatureEngineWindow(QtWidgets.QMainWindow):
                 if self.list_checkboxes.item(i).checkState():
                     count_checked += 1
                     notes_for_adding.append(self.list_checkboxes.item(i).text())
-                    #self.multiply_features.append((self.list_checkboxes.item(i).text().split()))
             if count_checked < 2:
                 QtWidgets.QMessageBox.about(self, "Error",
                                             "Дополните хотя бы еще один признак для перемножения")
+            elif count_checked > 4:
+                QtWidgets.QMessageBox.about(self, "Error",
+                                            "Максимальное количество признаков для перемножения - 4")
             else:
                 self.list_added_items.addItem(f"{current_text_action}: " + " ".join(notes_for_adding))
-                #self.multiply_features.append(f"{current_text_action}: " + " ".join(notes_for_adding))
                 self.multiply_features[f"{current_text_action}: " + " ".join(notes_for_adding)] = notes_for_adding
+
         elif current_text_action == self.features[2]:
             for i in range(self.list_checkboxes.count()):
                 if self.list_checkboxes.item(i).checkState():
                     self.list_added_items.addItem(f"{current_text_action}: {self.list_checkboxes.item(i).text()}")
-                    #self.diff_features.append(f"{current_text_action}: {self.list_checkboxes.item(i).text()}")
                     self.diff_features[f"{current_text_action}: {self.list_checkboxes.item(i).text()}"] = self.list_checkboxes.item(i).text()
         elif current_text_action == self.features[1]:
             for i in range(self.list_checkboxes.count()):
                 if self.list_checkboxes.item(i).checkState():
                     self.list_added_items.addItem(f"{current_text_action}: {self.list_checkboxes.item(i).text()}")
-                    #self.cubic_features.append(f"{current_text_action}: {self.list_checkboxes.item(i).text()}")
                     self.cubic_features[f"{current_text_action}: {self.list_checkboxes.item(i).text()}"] = self.list_checkboxes.item(i).text()
         elif current_text_action == self.features[0]:
             for i in range(self.list_checkboxes.count()):
                 if self.list_checkboxes.item(i).checkState():
                     self.list_added_items.addItem(f"{current_text_action}: {self.list_checkboxes.item(i).text()}")
-                    #self.squared_features.append(f"{current_text_action}: {self.list_checkboxes.item(i).text()}")
                     self.squared_features[f"{current_text_action}: {self.list_checkboxes.item(i).text()}"] = self.list_checkboxes.item(i).text()
 
         for i in range(self.list_checkboxes.count()):
@@ -135,6 +134,16 @@ class FeatureEngineWindow(QtWidgets.QMainWindow):
                 all_columns = [item for item in self.cubic_features.values()]
                 for name_column in all_columns:
                     self.data[name_column + "^3"] = self.data[name_column]**3
+            if len(self.multiply_features) > 0:
+                customized_features = [item for item in self.multiply_features.values()]
+                for feature in customized_features:
+                    if len(feature) == 2:
+                        self.data["*".join(feature)] = self.data[feature[0]] * self.data[feature[1]]
+                    elif len(feature) == 3:
+                        self.data["*".join(feature)] = self.data[feature[0]] * self.data[feature[1]] * self.data[feature[2]]
+                    elif len(feature) == 4:
+                        self.data["*".join(feature)] = self.data[feature[0]] * self.data[feature[1]] * self.data[feature[2]] \
+                                                       * self.data[feature[3]]
             self.submitClicked.emit(self.data)
             QtWidgets.QMessageBox.about(self, "INFO", "Изменения применены!")
         else:

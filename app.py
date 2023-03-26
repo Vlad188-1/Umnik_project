@@ -79,12 +79,18 @@ class Ui_MainWindow():
         # MainWindow.setUnifiedTitleAndToolBarOnMac(False)
         MainWindow.resize(1320, 720)
 
+        self.tabs = QtWidgets.QTabWidget(MainWindow)
+        MainWindow.setCentralWidget(self.tabs)
         # Main widget
-        self.centralwidget = QtWidgets.QWidget(MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
-        MainWindow.setCentralWidget(self.centralwidget)
+        self.centralwidgetTrain = QtWidgets.QWidget(MainWindow)
+        self.centralwidgetInference = QtWidgets.QWidget(MainWindow)
+        # self.centralwidget.setObjectName("centralwidget")
 
-        self.web = QWebEngineView(self.centralwidget)
+        self.tabs.addTab(self.centralwidgetTrain, "Обучение моделей")
+        self.tabs.addTab(self.centralwidgetInference, "Инференс моделей")
+        # MainWindow.setCentralWidget(self.tabs)
+
+        self.web = QWebEngineView(self.centralwidgetTrain)
 
         # self.web = QWebEngineView(self.centralwidget)
         # self.browser = QtWebEngineWidgets.QWebEngineView(self.centralwidget)
@@ -95,20 +101,20 @@ class Ui_MainWindow():
         # self.show_button.clicked.connect(self.showDistributionNanValues)
 
         # Buttons
-        self.ButtonProcessData = QPushButton(self.centralwidget)
+        self.ButtonProcessData = QPushButton(self.centralwidgetTrain)
         self.ButtonProcessData.setText("Process data")
         self.ButtonProcessData.setGeometry(300, 20, 150, 30)
         self.ButtonProcessData.setObjectName("pushButton")
         self.ButtonProcessData.setStyleSheet(Constants.SELECTALL_BUTTON)
         self.ButtonProcessData.clicked.connect(self.preProcess)
 
-        self.line = QtWidgets.QFrame(self.centralwidget)
+        self.line = QtWidgets.QFrame(self.centralwidgetTrain)
         self.line.setGeometry(QtCore.QRect(730, 20, 40, 640))
         self.line.setFrameShape(QtWidgets.QFrame.VLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
         # TABLE: Layout for table
-        self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
+        self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidgetTrain)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 70, 700, 411))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
 
@@ -143,11 +149,11 @@ class Ui_MainWindow():
         # self.verticalLayoutWidget_2.setStyleSheet(Constants.PROCESSING_BUTTONS_STYLES)
 
         # TABLE: Combobx separator
-        self.name_combobox = QtWidgets.QLabel(self.centralwidget)
+        self.name_combobox = QtWidgets.QLabel(self.centralwidgetTrain)
         self.name_combobox.setText("<b>Выбрать сепаратор</b>")
         self.name_combobox.setGeometry(10, 10, 150, 50)
 
-        self.commobox_separators = QComboBox(self.centralwidget)
+        self.commobox_separators = QComboBox(self.centralwidgetTrain)
         self.commobox_separators.setGeometry(QtCore.QRect(170, 10, 100, 50))
         self.commobox_separators.addItems(self.separators)
         self.commobox_separators.setObjectName("combox")
@@ -205,14 +211,14 @@ class Ui_MainWindow():
         self.pbar_process.setMaximum(100)
 
         # Layout for buttons
-        self.verticalLayoutWidgetTable = QtWidgets.QWidget(self.centralwidget)
+        self.verticalLayoutWidgetTable = QtWidgets.QWidget(self.centralwidgetTrain)
         self.verticalLayoutWidgetTable.setGeometry(QtCore.QRect(10, 500, 300, 200))
         self.verticalLayoutWidgetTable.setObjectName("verticalLayoutWidget_3")
 
         self.layoutWorkWithTable = QtWidgets.QGridLayout(self.verticalLayoutWidgetTable)
 
         # TABLE: Checkboxes
-        self.list_checkboxes = QtWidgets.QListWidget(self.centralwidget)
+        self.list_checkboxes = QtWidgets.QListWidget(self.centralwidgetTrain)
         self.list_checkboxes.setDragDropMode(self.list_checkboxes.InternalMove)
         self.list_checkboxes.setGeometry(10, 500, 200, 150)
         # self.layoutWorkWithTable.addWidget(self.centralwidget)
@@ -221,14 +227,14 @@ class Ui_MainWindow():
         # self.layoutWotkWithTable.addWidget(self.button5, 1, 0)
 
         # TABLE: Button update table
-        self.buttonUpdateTable = QPushButton(self.centralwidget)
+        self.buttonUpdateTable = QPushButton(self.centralwidgetTrain)
         self.buttonUpdateTable.setGeometry(230, 500, 200, 30)
         self.buttonUpdateTable.setText("Обновить таблицу")
         self.buttonUpdateTable.clicked.connect(self.update_table_checkboxes)
         self.buttonUpdateTable.setStyleSheet(Constants.UPDATE_TABLE_BUTTON_STYLE)
 
         # TABLE: Button select all checkboxes
-        self.buttonSelectAll = QPushButton(self.centralwidget)
+        self.buttonSelectAll = QPushButton(self.centralwidgetTrain)
         self.buttonSelectAll.setGeometry(230, 540, 200, 30)
         self.buttonSelectAll.setText("Выбрать все элементы")
         self.buttonSelectAll.clicked.connect(lambda: self.selectAll(True))
@@ -238,60 +244,60 @@ class Ui_MainWindow():
         # self.buttonSelectAll.setFont(fontSelectButton)
 
         # TABLE: Button unselect all checkboxes
-        self.buttonUnselectAll = QPushButton(self.centralwidget)
+        self.buttonUnselectAll = QPushButton(self.centralwidgetTrain)
         self.buttonUnselectAll.setGeometry(230, 580, 200, 30)
         self.buttonUnselectAll.setText("Отменить выбор")
         self.buttonUnselectAll.clicked.connect(lambda: self.selectAll(False))
         self.buttonUnselectAll.setStyleSheet(Constants.SELECTALL_BUTTON)
 
         # TABLE: Button delete NaN values
-        self.buttonDeleteNan = QPushButton(self.centralwidget)
+        self.buttonDeleteNan = QPushButton(self.centralwidgetTrain)
         self.buttonDeleteNan.setGeometry(450, 500, 250, 30)
         self.buttonDeleteNan.setText("Работа с Nan значениями")
         self.buttonDeleteNan.setStyleSheet(Constants.DELETE_NAN)
         self.buttonDeleteNan.clicked.connect(lambda: self.OpenDeleteNanWindow())
 
         # TABLE: Combobox target variable
-        self.probaWidget = QtWidgets.QWidget(self.centralwidget)
+        self.probaWidget = QtWidgets.QWidget(self.centralwidgetTrain)
         self.probaWidget.setGeometry(755, 10, 550, 230)
         self.probaWidget.setStyleSheet("""QWidget {background-color:lightgrey; border: 1px solid black}""")
 
-        self.labelCombobox = QtWidgets.QLabel(self.centralwidget)
+        self.labelCombobox = QtWidgets.QLabel(self.centralwidgetTrain)
         self.labelCombobox.setText("<b>Выбрать целевую переменную</b>")
         self.labelCombobox.setGeometry(770, 10, 250, 50)
-        self.comboboxSelectTargetVariable = QComboBox(self.centralwidget)
+        self.comboboxSelectTargetVariable = QComboBox(self.centralwidgetTrain)
         self.comboboxSelectTargetVariable.setGeometry(1050, 10, 150, 50)
 
         # TABLE: Plot distribution target variable
-        self.buttonDistributionTargetVariable = QPushButton(self.centralwidget)
+        self.buttonDistributionTargetVariable = QPushButton(self.centralwidgetTrain)
         self.buttonDistributionTargetVariable.setGeometry(1100, 200, 200, 30)
         self.buttonDistributionTargetVariable.setText("Распределение целевой переменной")
         self.buttonDistributionTargetVariable.setStyleSheet(Constants.DELETE_NAN)
         self.buttonDistributionTargetVariable.clicked.connect(self.buttonPlotDistributionTargetVariable)
 
         # TABLE: Split size
-        self.labelSplitSize = QLabel(self.centralwidget)
+        self.labelSplitSize = QLabel(self.centralwidgetTrain)
         self.labelSplitSize.setText("<b>Соотношение разбиения выборки</b>")
         self.labelSplitSize.setGeometry(770, 60, 250, 50)
-        self.comboboxSplitSize = QComboBox(self.centralwidget)
+        self.comboboxSplitSize = QComboBox(self.centralwidgetTrain)
         self.comboboxSplitSize.setGeometry(1050, 60, 150, 50)
         self.comboboxSplitSize.addItems(["70:30", "75:25", "80:20", "85:15", "90:10"])
         self.comboboxSplitSize.setCurrentIndex(2)
 
         # TABLE: Button save prepared dataset
-        self.buttonSavePreparedDataset = QPushButton(self.centralwidget)
+        self.buttonSavePreparedDataset = QPushButton(self.centralwidgetTrain)
         self.buttonSavePreparedDataset.setGeometry(760, 120, 300, 40)
         self.buttonSavePreparedDataset.setText("Сохранить подготовленный датасет")
         self.buttonSavePreparedDataset.clicked.connect(self.SavePreparedDataset)
 
         # TABLE: Open prepared dataset
-        self.buttonOpenPreparedDataset = QPushButton(self.centralwidget)
+        self.buttonOpenPreparedDataset = QPushButton(self.centralwidgetTrain)
         self.buttonOpenPreparedDataset.setText("Открыть подготовленный датасет")
         self.buttonOpenPreparedDataset.setGeometry(760, 180, 300, 40)
         self.buttonOpenPreparedDataset.clicked.connect(self.loadPreparedData)
 
         # FE: Button open feature engine window
-        self.buttonFeatureEngine = QPushButton(self.centralwidget)
+        self.buttonFeatureEngine = QPushButton(self.centralwidgetTrain)
         self.buttonFeatureEngine.setGeometry(230, 620, 200, 30)
         self.buttonFeatureEngine.setText("Feature Engine")
         # self.buttonUnselectAll.clicked.connect(lambda: self.selectAll(False))
@@ -299,56 +305,56 @@ class Ui_MainWindow():
         self.buttonFeatureEngine.clicked.connect(lambda: self.OpenFeatureEngineWindow())
 
         # MODEL: Model settings
-        self.setting_model_params = QLabel(self.centralwidget)
+        self.setting_model_params = QLabel(self.centralwidgetTrain)
         self.setting_model_params.setText("Настройка параметров модели")
         self.setting_model_params.setGeometry(760, 250, 350, 50)
         self.setting_model_params.setFont(QFont("Times", 16, QtGui.QFont.Bold))
 
         # MODEL: Batch size
-        self.batch_size_label = QLabel(self.centralwidget)
+        self.batch_size_label = QLabel(self.centralwidgetTrain)
         self.batch_size_label.setText("Размер батча")
         self.batch_size_label.setGeometry(760, 300, 350, 50)
 
-        self.batch_size_lineEdit = QLineEdit(self.centralwidget)
+        self.batch_size_lineEdit = QLineEdit(self.centralwidgetTrain)
         self.batch_size_lineEdit.setGeometry(880, 315, 50, 20)
         self.batch_size_lineEdit.setStyleSheet("""QLineEdit {border: 1px solid black;}""")
         self.batch_size_lineEdit.setText("64")
         self.batch_size_lineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
         # MODEL: Epochs
-        self.epochs_label = QLabel(self.centralwidget)
+        self.epochs_label = QLabel(self.centralwidgetTrain)
         self.epochs_label.setText("Кол-во эпох")
         self.epochs_label.setGeometry(1050, 300, 300, 50)
 
-        self.epochs_lineEdit = QLineEdit(self.centralwidget)
+        self.epochs_lineEdit = QLineEdit(self.centralwidgetTrain)
         self.epochs_lineEdit.setGeometry(1150, 315, 50, 20)
         self.epochs_lineEdit.setStyleSheet("""QLineEdit {border: 1px solid black;}""")
         self.epochs_lineEdit.setText("100")
         self.epochs_lineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
         # MODEL: Optimizator
-        self.optimizator_label = QLabel(self.centralwidget)
+        self.optimizator_label = QLabel(self.centralwidgetTrain)
         self.optimizator_label.setText("Оптимизатор")
         self.optimizator_label.setGeometry(760, 360, 200, 50)
 
-        self.optimizator_combobox = QComboBox(self.centralwidget)
+        self.optimizator_combobox = QComboBox(self.centralwidgetTrain)
         self.optimizator_combobox.setGeometry(875, 365, 100, 50)
         self.optimizator_combobox.addItems(["Adam", "SGD"])
         self.optimizator_combobox.setCurrentIndex(0)
 
         # MODEL: Learning rate
-        self.learning_rate_label = QLabel(self.centralwidget)
+        self.learning_rate_label = QLabel(self.centralwidgetTrain)
         self.learning_rate_label.setText("Коэффициент обучения")
         self.learning_rate_label.setGeometry(1050, 360, 200, 50)
 
-        self.learning_rate_lineEdit = QLineEdit(self.centralwidget)
+        self.learning_rate_lineEdit = QLineEdit(self.centralwidgetTrain)
         self.learning_rate_lineEdit.setGeometry(1220, 375, 70, 20)
         self.learning_rate_lineEdit.setStyleSheet("""QLineEdit {border: 1px solid black;}""")
         self.learning_rate_lineEdit.setText("0.0001")
         self.learning_rate_lineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
         # MODEL: Run model
-        self.button_runModel = QPushButton(self.centralwidget)
+        self.button_runModel = QPushButton(self.centralwidgetTrain)
         self.button_runModel.setGeometry(760, 460, 200, 30)
         self.button_runModel.setText("Запустить обучение")
         self.button_runModel.setStyleSheet(Constants.UPDATE_TABLE_BUTTON_STYLE)
@@ -376,6 +382,11 @@ class Ui_MainWindow():
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+        # # INFERECNE
+        #
+        # self. = QLabel(self.centralwidgetTrain)
+
 
     # def updateColumnsTable(self):
     #     if ch.isChecked():
@@ -602,7 +613,37 @@ class Ui_MainWindow():
                 self.y_train = pd.read_csv(file)
             elif file.name.startswith("y_valid"):
                 self.y_valid = pd.read_csv(file)
-            print(file)
+
+        if (self.x_train is not None) and \
+                (self.x_valid is not None) and \
+                (self.y_train is not None) and \
+                (self.y_valid is not None):
+            X = pd.concat([self.x_train, self.x_valid], axis=0).reset_index(drop=True)
+            y = pd.concat([self.y_train, self.y_valid], axis=0).reset_index(drop=True)
+            self.data = pd.concat([X, y], axis=1)
+            self.model_table = TableModel(self.data)
+            self.table.setModel(self.model_table)
+            self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
+            self.num_rows.setText("<b>Количество строк:</b> " + str(len(self.data)) if self.data is not None else "0")
+            self.num_columns.setText(
+                "<b>Количество столбцов: </b>" + str(len(self.data.columns)) if self.data is not None else "0")
+            self.data_copy = self.data.copy()
+            if self.data is not None:
+                self.list_checkboxes.clear()
+                self.comboboxSelectTargetVariable.addItems(self.data.columns)
+                for col in self.data.columns:
+                    item = QtWidgets.QListWidgetItem(col)
+                    item.setCheckState(Qt.Checked)
+                    self.list_checkboxes.addItem(item)
+            else:
+                self.list_checkboxes.clear()
+                item = QtWidgets.QListWidgetItem("None")
+                item.setCheckState(Qt.Checked)
+                self.list_checkboxes.addItem(item)
+        else:
+            QtWidgets.QMessageBox.about(MainWindow, "Error",
+                                        "Ошибка при загрузке подготволенного датасета. Проверьте его наличие!")
+            # print(file)
 
     # MODEL: Function to run model
     def runModel(self):

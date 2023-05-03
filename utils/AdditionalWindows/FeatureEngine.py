@@ -17,6 +17,7 @@ class FeatureEngineWindow(QtWidgets.QMainWindow):
                          'Перемножение признаков',
                          "One hot кодирование"]
         self.data = data
+        self.added_features = pd.DataFrame()
         self.squared_features = dict()
         self.cubic_features = dict()
         self.diff_features = dict()
@@ -129,6 +130,7 @@ class FeatureEngineWindow(QtWidgets.QMainWindow):
             if len(self.squared_features) > 0:
                 all_columns = [item for item in self.squared_features.values()]
                 for name_column in all_columns:
+                    # self.added_features[name_column + "^2"] = self.added_features[name_column]**2
                     self.data[name_column + "^2"] = self.data[name_column]**2
             if len(self.cubic_features) > 0:
                 all_columns = [item for item in self.cubic_features.values()]
@@ -144,8 +146,18 @@ class FeatureEngineWindow(QtWidgets.QMainWindow):
                     elif len(feature) == 4:
                         self.data["*".join(feature)] = self.data[feature[0]] * self.data[feature[1]] * self.data[feature[2]] \
                                                        * self.data[feature[3]]
+            # squared_features = list(self.squared_features.values())
+            # cubic_features = list(self.cubic_features.values())
+            # multiply_features = list(self.multiply_features.values())
+            # added_features = squared_features + cubic_features + [feature[0] for feature in multiply_features]
+            # self.data = pd.concat([self.data.drop(added_features, axis=1), self.data[sorted(added_features)]], axis=1)
+
+            self.data.sort_index(axis=1, inplace=True)
+
             self.submitClicked.emit(self.data)
+
             QtWidgets.QMessageBox.about(self, "INFO", "Изменения применены!")
+            # del (squared_features, cubic_features, multiply_features)
         else:
             QtWidgets.QMessageBox.about(self, "ERROR", "Ошибка!")
 

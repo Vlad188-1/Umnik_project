@@ -55,7 +55,7 @@ class Plots:
         plotly.offline.plot(fig, filename="plots/TargetVariable.html", auto_open=True)
 
 
-def plotTrainValidCurve(history, writer):
+def plotTrainValidCurve(history: dict, out_dir: str):
     # print('Plotting training and validation curve...')
 
     acc = history['train_accuracy']
@@ -104,10 +104,10 @@ def plotTrainValidCurve(history, writer):
     fig.update_yaxes(row=1, col=1, nticks=10, tickfont=dict(size=20), gridcolor='lightgrey', zerolinecolor='lightgrey')
     fig.update_yaxes(row=1, col=2, nticks=10, tickfont=dict(size=20), gridcolor='lightgrey', zerolinecolor='lightgrey')
 
-    fig.write_image(Path(writer.log_dir, "train_val_curve.jpg"))
+    fig.write_image(Path(out_dir, "train_val_curve.jpg"))
 
 
-def plotTrainValidCurveAE(history, writer):
+def plotTrainValidCurveAE(history: dict, out_dir: str):
 
     loss = history['train_loss']
     val_loss = history['val_loss']
@@ -129,6 +129,6 @@ def plotTrainValidCurveAE(history, writer):
 
     fig.update_yaxes(row=1, col=1, nticks=10, tickfont=dict(size=20), gridcolor='lightgrey', zerolinecolor='lightgrey')
 
-    fig.write_image(Path(writer.log_dir, "train_val_curve_AE.jpg"))
+    fig.write_image(Path(out_dir, "train_val_curve_AE.jpg"))
 
 

@@ -69,7 +69,7 @@ class DeleteNanWindow(QtWidgets.QMainWindow):
     def showDistributionNanValues(self):
         if self.data is not None:
             Plots.plotDistributionNanValues(self.data)
-            file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "plots", "Nan.html"))
+            file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../plots", "Nan.html"))
             self.web.load(QtCore.QUrl.fromLocalFile(file_path))
             self.web.show()
         else:

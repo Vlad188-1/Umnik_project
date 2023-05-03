@@ -2,6 +2,10 @@
 import pandas as pd
 from math import ceil
 import os
+import yaml
+from pathlib import Path
+from sklearn.model_selection import train_test_split
+from datetime import datetime
 
 # PyQt5 imports
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -9,21 +13,17 @@ from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QPushButton, QLabel, QLineEdit, QComboBox
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from sklearn.model_selection import train_test_split
-from datetime import datetime
-from pathlib import Path
 
 # My imports
-from utils import Process, Constants, FeatureEngineWindow, DeleteNanWindow
+from utils.AdditionalWindows import FeatureEngineWindow, DeleteNanWindow, TestDataWindow
+from utils import Process, Constants
 from src import CustomDataset, NN, train_and_validation, AutoEncoder, train_and_validation_autoencoder
 from utils.PlotGraphics import Plots
-import numpy as np
 
 # Import for training
 import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -67,10 +67,16 @@ class Ui_MainWindow():
     def __init__(self):
         self.filename = ""
         self.data = None
+        # self.depth = None
         self.model_table = None
-        self.separators = [";", ":", ","]
+        self.separators = [":", ",", ";"]
         self.true_checkboxes_text = []
         self.data_copy = None
+        self.true_cols = []
+        self.false_cols = []
+
+        # For prepared data
+        self.project_path = ""
 
         self.x_train = None
         self.x_valid = None
@@ -114,7 +120,7 @@ class Ui_MainWindow():
 
         # Buttons
         self.ButtonProcessData = QPushButton(self.centralwidgetTrain)
-        self.ButtonProcessData.setText("Process data")
+        self.ButtonProcessData.setText("Обработка данных")
         self.ButtonProcessData.setGeometry(300, 20, 150, 30)
         self.ButtonProcessData.setObjectName("pushButton")
         self.ButtonProcessData.setStyleSheet(Constants.SELECTALL_BUTTON)
@@ -282,7 +288,7 @@ class Ui_MainWindow():
 
         # TABLE: Plot distribution target variable
         self.buttonDistributionTargetVariable = QPushButton(self.centralwidgetTrain)
-        self.buttonDistributionTargetVariable.setGeometry(1100, 200, 200, 30)
+        self.buttonDistributionTargetVariable.setGeometry(1030, 185, 270, 30)
         self.buttonDistributionTargetVariable.setText("Распределение целевой переменной")
         self.buttonDistributionTargetVariable.setStyleSheet(Constants.DELETE_NAN)
         self.buttonDistributionTargetVariable.clicked.connect(self.buttonPlotDistributionTargetVariable)
@@ -298,14 +304,14 @@ class Ui_MainWindow():
 
         # TABLE: Button save prepared dataset
         self.buttonSavePreparedDataset = QPushButton(self.centralwidgetTrain)
-        self.buttonSavePreparedDataset.setGeometry(760, 120, 300, 40)
+        self.buttonSavePreparedDataset.setGeometry(760, 120, 260, 40)
         self.buttonSavePreparedDataset.setText("Сохранить подготовленный датасет")
         self.buttonSavePreparedDataset.clicked.connect(self.SavePreparedDataset)
 
         # TABLE: Open prepared dataset
         self.buttonOpenPreparedDataset = QPushButton(self.centralwidgetTrain)
         self.buttonOpenPreparedDataset.setText("Открыть подготовленный датасет")
-        self.buttonOpenPreparedDataset.setGeometry(760, 180, 300, 40)
+        self.buttonOpenPreparedDataset.setGeometry(760, 180, 260, 40)
         self.buttonOpenPreparedDataset.clicked.connect(self.loadPreparedData)
 
         # FE: Button open feature engine window
@@ -382,6 +388,19 @@ class Ui_MainWindow():
         self.button_runModel.setStyleSheet(Constants.UPDATE_TABLE_BUTTON_STYLE)
         self.button_runModel.clicked.connect(self.runModel)
 
+        # Test wells
+        self.button_test_data = QPushButton(self.centralwidgetTrain)
+        self.button_test_data.setGeometry(450, 580, 250, 30)
+        self.button_test_data.setText("Протестировать данные")
+        self.button_test_data.setStyleSheet(Constants.SELECTALL_BUTTON)
+        self.button_test_data.clicked.connect(lambda: self.OpenTestDataWindow())
+
+        # INFERECNE:
+        self.button_edit_test_data = QPushButton(self.centralwidgetTrain)
+        self.button_edit_test_data.setGeometry(450, 540, 250, 30)
+        self.button_edit_test_data.setText("Использовать конфиг подготовки")
+        self.button_edit_test_data.setStyleSheet(Constants.DELETE_NAN)
+        # self.button_edit_test_data.clicked.connect()
         # self.comboboxSelectTargetVariable.addItems(self.data)
         # self.comboboxSelectTargetVariable.currentIndexChanged['QString'].connect(self.updateSeparatorTable)
         # self.buttonEditTargetVariable = QPushButton(self.centralwidget)
@@ -503,6 +522,9 @@ class Ui_MainWindow():
 
         if self.data is not None:
             self.list_checkboxes.clear()
+            self.data_copy = self.data.copy()
+            self.comboboxSelectTargetVariable.clear()
+            self.comboboxSelectTargetVariable.addItems(self.data.columns)
             for col in self.data.columns:
                 item = QtWidgets.QListWidgetItem(col)
                 item.setCheckState(Qt.Checked)
@@ -516,15 +538,17 @@ class Ui_MainWindow():
             # self.layoutWorkWithTable.addWidget(self.list_checkboxes, 0, 0)
 
     def update_table_checkboxes(self):
-        true_cols = []
-        false_cols = []
+        # true_cols = []
+        # false_cols = []
+        self.true_cols.clear()
+        self.false_cols.clear()
         for i in range(self.list_checkboxes.count()):
             if self.list_checkboxes.item(i).checkState():
-                true_cols.append(self.list_checkboxes.item(i).text())
+                self.true_cols.append(self.list_checkboxes.item(i).text())
             else:
-                false_cols.append(true_cols)
+                self.false_cols.append(self.list_checkboxes.item(i).text())
         if self.data is not None:
-            self.data = self.data_copy[true_cols]
+            self.data = self.data_copy[self.true_cols]
             self.model_table = TableModel(self.data)
             self.table.setModel(self.model_table)
             self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
@@ -535,8 +559,8 @@ class Ui_MainWindow():
             self.comboboxSelectTargetVariable.addItems(self.data.columns)
         else:
             QtWidgets.QMessageBox.about(MainWindow, "ERROR", "Ошибка!")
-        # print("True cols: ", true_cols)
-        # print("False cols: ", false_cols)
+        print("True cols: ", self.true_cols)
+        print("False cols: ", self.false_cols)
 
     # TABLE: Function select all function for button
     def selectAll(self, flag: bool):
@@ -561,6 +585,14 @@ class Ui_MainWindow():
         self.engineWindow = FeatureEngineWindow(self.data)
         self.engineWindow.submitClicked.connect(self.confirmChanges)
         self.engineWindow.displayInfo(self.data)
+
+    def OpenTestDataWindow(self):
+        # if self.data is not None:
+        self.testWindow = TestDataWindow(self.data.copy() if self.data is not None else self.data)
+        # self.testWindow.submitClicked.connect(self.confirmChanges)
+        self.testWindow.displayInfo()
+        # else:
+        #     QtWidgets.QMessageBox.about(MainWindow, "ERROR", "Не загружены данные для тестирования! Загрузите данные, чтобы открыть меню")
 
     # TABLE: Function for deleting NaN values
     def OpenDeleteNanWindow(self):
@@ -605,27 +637,48 @@ class Ui_MainWindow():
                 if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
                     project_dir = dialog.selectedFiles()[-1]
                     Path(project_dir).mkdir(exist_ok=True)
+                    self.project_path = project_dir
                     # if self.data is not None:
                     #     if not self.data.isnull().values.any():
                     _, test_size = self.comboboxSplitSize.currentText().split(":")
                     y = self.data[self.comboboxSelectTargetVariable.currentText()]
                     x = self.data.drop([self.comboboxSelectTargetVariable.currentText()], axis=1)
-                    x_train, x_valid, y_train, y_valid = train_test_split(
+                    self.x_train, self.x_valid, self.y_train, self.y_valid = train_test_split(
                         x, y, shuffle=True, test_size=int(test_size) / 100,
                         stratify=self.data[self.comboboxSelectTargetVariable.currentText()], random_state=12)
 
-                    x_train.to_csv(Path(project_dir, "X_train.csv"), index=False)
-                    x_valid.to_csv(Path(project_dir, "X_valid.csv"), index=False)
-                    y_train.to_csv(Path(project_dir, "y_train.csv"), index=False)
-                    y_valid.to_csv(Path(project_dir, "y_valid.csv"), index=False)
+                    self.x_train.to_csv(Path(project_dir, "X_train.csv"), index=False)
+                    self.x_valid.to_csv(Path(project_dir, "X_valid.csv"), index=False)
+                    self.y_train.to_csv(Path(project_dir, "y_train.csv"), index=False)
+                    self.y_valid.to_csv(Path(project_dir, "y_valid.csv"), index=False)
+
+                    dict_yaml = {}
+                    mul_list = []
+                    pow_2_list = []
+                    pow_3_list = []
+
+                    for col in self.x_train.columns:
+                        if "*" in col:
+                            mul_list.append(col.split("*"))
+                        elif "^2" in col:
+                            pow_2_list.append(col.split("^")[0])
+                        elif "^3" in col:
+                            pow_3_list.append(col.split("^")[0])
+                    dict_yaml["*"] = mul_list
+                    dict_yaml["^2"] = pow_2_list
+                    dict_yaml["^3"] = pow_3_list
+                    dict_yaml["Number features"] = len(self.x_train.columns)
+                    dict_yaml["Target variable"] = self.comboboxSelectTargetVariable.currentText()
+                    with open(Path(project_dir, 'config_processing_data.yml'), 'w') as outfile:
+                        yaml.dump(dict_yaml, outfile, default_flow_style=False)
             else:
                 QtWidgets.QMessageBox.about(MainWindow, "Error",
                                             "Данные содержат NaN значения. Удалите их перед сохранением проекта")
 
     # TABLE: Function to load prepared dataset
     def loadPreparedData(self):
-        project_path = QtWidgets.QFileDialog.getExistingDirectory(None, 'Select Folder')
-        all_files = sorted(list(Path(project_path).glob("*.csv")))
+        self.project_path = QtWidgets.QFileDialog.getExistingDirectory(None, 'Select Folder')
+        all_files = sorted(list(Path(self.project_path).glob("*.csv")))
         for file in all_files:
             if file.name.startswith("X_train"):
                 self.x_train = pd.read_csv(file)
@@ -652,6 +705,7 @@ class Ui_MainWindow():
             self.data_copy = self.data.copy()
             if self.data is not None:
                 self.list_checkboxes.clear()
+                self.comboboxSelectTargetVariable.clear()
                 self.comboboxSelectTargetVariable.addItems(self.data.columns)
                 for col in self.data.columns:
                     item = QtWidgets.QListWidgetItem(col)
@@ -679,7 +733,7 @@ class Ui_MainWindow():
         else:
             device = "cpu"
 
-        writer = SummaryWriter()
+        # writer = SummaryWriter()
         criterion_NN = BCEWithLogitsLoss()
 
         if self.combobox_models.currentText() == "AE_NN":
@@ -694,6 +748,10 @@ class Ui_MainWindow():
                 optimizer_NN = SGD(model_NN.parameters(), lr=eval(self.learning_rate_lineEdit.text()))
             optimizer_AE = Adam(model_AE.parameters(), lr=0.001)
 
+            # if not self.project_path:
+            #     time_now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            #     self.project_path = str(Path("projects", time_now))
+
             training_params = {"model_AE": model_AE,
                                "model_NN": model_NN,
                                "train_dataset": train_dataset,
@@ -706,7 +764,7 @@ class Ui_MainWindow():
                                "criterion_NN": criterion_NN,
                                "optimizer_AE": optimizer_AE,
                                "optimizer_NN": optimizer_NN,
-                               "writer": writer,
+                               "out_dir": self.project_path,
                                "scheduler": None}
 
             self.thread = TrainModel(train_and_validation_autoencoder, training_params)
@@ -728,11 +786,16 @@ class Ui_MainWindow():
                                "device": device,
                                "criterion": criterion_NN,
                                "optimizer": optimizer_NN,
-                               "writer": writer,
+                               "out_dir": self.project_path,
                                "scheduler": None}
 
             self.thread = TrainModel(train_and_validation, training_params)
             self.thread.start()
+
+    # INFERENCE: Button to open config.yaml
+    def loadConfigFile(self):
+        config_name, _ = QtWidgets.QFileDialog.getOpenFileName(filter="*.csv")
+        pass
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

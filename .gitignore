@@ -9,3 +9,8 @@ Nan.html
 app.ui
 runs
 plots
+test_wells
+Train_without_test_wells.csv
+Markup.jpg
+ROC-PR-curve_test.jpg
+Project.zip

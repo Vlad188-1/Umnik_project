@@ -7,9 +7,10 @@ from pathlib import Path
 
 # My imports
 from src.NN import CustomDataset, DataLoader
-from src.Metrics import binary_acc
+from src.Metrics import binary_acc, multi_acc
 from utils.PlotGraphics import plotTrainValidCurve, plotTrainValidCurveAE
 from src.NN import NN, AutoEncoder
+import torch.nn as nn
 
 
 def train_and_validation(model,
@@ -27,6 +28,8 @@ def train_and_validation(model,
     all_train_accuracy = []
     all_val_accuracy = []
     best_loss = inf
+
+    # criterion = nn.CrossEntropyLoss(reduction="sum")
 
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
@@ -46,8 +49,12 @@ def train_and_validation(model,
             optimizer.zero_grad()
             output = model(inputs)
 
-            loss = criterion(output, labels)
-            acc = binary_acc(output, labels)
+            # _, preds = torch.max(output, 1)
+
+            loss = criterion(output, labels.reshape(labels.shape[0]))
+            #loss = criterion(torch.max(torch.nn.functional.softmax(output, dim=1), dim=1)[0].unsqueeze(1), labels)
+            # acc = binary_acc(output, labels)
+            acc = multi_acc(output, labels)
 
             loss.backward()
             optimizer.step()
@@ -72,8 +79,10 @@ def train_and_validation(model,
 
             output = model(inputs)
 
-            loss = criterion(output, labels)
-            acc = binary_acc(output, labels)
+            # loss = criterion(torch.max(torch.nn.functional.softmax(output, dim=1), dim=1)[0].unsqueeze(1), labels)
+            loss = criterion(output, labels.reshape(labels.shape[0]))
+            # acc = binary_acc(output, labels)
+            acc = multi_acc(output, labels)
 
             val_loss += loss.item()
             val_acc += acc.item()

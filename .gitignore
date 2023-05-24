@@ -14,3 +14,16 @@ Train_without_test_wells.csv
 Markup.jpg
 ROC-PR-curve_test.jpg
 Project.zip
+best_model_AE.pt
+best_model_NN.pt
+draft.ipynb
+draft.py
+draft_2.py
+draft_3.py
+train_val_curve.jpg
+image.jpg
+.ipynb_checkpoints
+test_wells_multiclass
+Train_without_test_wells.csv
+Train_without_test_wells_multiclass.csv
+Results

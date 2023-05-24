@@ -20,7 +20,7 @@ class Process(QThread):
                     continue
                 else:
                     self.data[i] = self.data[i].replace(',', '.', regex=True).astype(float)
-                cnt += ceil(100 / len(self.data.columns))
-                self.change_value.emit(cnt)
+                # cnt += ceil(100 / len(self.data.columns))
+                # self.change_value.emit(cnt)
         else:
             self.data = None

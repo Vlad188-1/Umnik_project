@@ -5,6 +5,7 @@ import os
 import yaml
 from pathlib import Path
 from sklearn.model_selection import train_test_split
+import numpy as np
 from datetime import datetime
 
 # PyQt5 imports
@@ -22,7 +23,7 @@ from utils.PlotGraphics import Plots
 
 # Import for training
 import torch
-from torch.nn import BCEWithLogitsLoss
+from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss
 from torch.optim import Adam, SGD
 from torch.utils.tensorboard import SummaryWriter
 
@@ -95,7 +96,7 @@ class Ui_MainWindow():
         # MainWindow.setDockNestingEnabled(False)
         # MainWindow.setDockOptions(QtWidgets.QMainWindow.AllowTabbedDocks|QtWidgets.QMainWindow.AnimatedDocks)
         # MainWindow.setUnifiedTitleAndToolBarOnMac(False)
-        MainWindow.resize(1320, 720)
+        MainWindow.resize(1320, 770)
 
         self.tabs = QtWidgets.QTabWidget(MainWindow)
         MainWindow.setCentralWidget(self.tabs)
@@ -323,6 +324,10 @@ class Ui_MainWindow():
         self.buttonFeatureEngine.clicked.connect(lambda: self.OpenFeatureEngineWindow())
 
         # MODEL: Model settings
+        self.border_train = QtWidgets.QWidget(self.centralwidgetTrain)
+        self.border_train.setGeometry(755, 250, 550, 270)
+        self.border_train.setStyleSheet("""QWidget {background-color:lightgrey; border: 1px solid black}""")
+
         self.setting_model_params = QLabel(self.centralwidgetTrain)
         self.setting_model_params.setText("Настройка параметров модели")
         self.setting_model_params.setGeometry(760, 250, 350, 50)
@@ -388,18 +393,28 @@ class Ui_MainWindow():
         self.button_runModel.setStyleSheet(Constants.UPDATE_TABLE_BUTTON_STYLE)
         self.button_runModel.clicked.connect(self.runModel)
 
+        # Инференс
+        self.border_inference = QtWidgets.QWidget(self.centralwidgetTrain)
+        self.border_inference.setGeometry(755, 530, 550, 150)
+        self.border_inference.setStyleSheet("""QWidget {background-color:lightgrey; border: 1px solid black}""")
+
+        self.module_test_wells = QLabel(self.centralwidgetTrain)
+        self.module_test_wells.setText("Модуль тестирования данных")
+        self.module_test_wells.setGeometry(760, 520, 350, 50)
+        self.module_test_wells.setFont(QFont("Times", 16, QtGui.QFont.Bold))
+
         # Test wells
         self.button_test_data = QPushButton(self.centralwidgetTrain)
-        self.button_test_data.setGeometry(450, 580, 250, 30)
+        self.button_test_data.setGeometry(760, 580, 250, 30)
         self.button_test_data.setText("Протестировать данные")
         self.button_test_data.setStyleSheet(Constants.SELECTALL_BUTTON)
         self.button_test_data.clicked.connect(lambda: self.OpenTestDataWindow())
 
         # INFERECNE:
-        self.button_edit_test_data = QPushButton(self.centralwidgetTrain)
-        self.button_edit_test_data.setGeometry(450, 540, 250, 30)
-        self.button_edit_test_data.setText("Использовать конфиг подготовки")
-        self.button_edit_test_data.setStyleSheet(Constants.DELETE_NAN)
+        # self.button_edit_test_data = QPushButton(self.centralwidgetTrain)
+        # self.button_edit_test_data.setGeometry(450, 540, 250, 30)
+        # self.button_edit_test_data.setText("Использовать конфиг подготовки")
+        # self.button_edit_test_data.setStyleSheet(Constants.DELETE_NAN)
         # self.button_edit_test_data.clicked.connect()
         # self.comboboxSelectTargetVariable.addItems(self.data)
         # self.comboboxSelectTargetVariable.currentIndexChanged['QString'].connect(self.updateSeparatorTable)
@@ -488,7 +503,7 @@ class Ui_MainWindow():
     def preProcess(self):
         self.pbar_process.setVisible(True)
         self.thread = Process(self.data)
-        self.thread.change_value.connect(self.setProgressVal)
+        # self.thread.change_value.connect(self.setProgressVal)
         self.thread.start()
         self.data = self.thread.data
         if self.data is not None:
@@ -502,9 +517,9 @@ class Ui_MainWindow():
         # self.button.setEnabled(False)
         # self.pbar.setAlignment(Qt.AlignCenter)
         self.pbar_process.setValue(val)
-        if ceil(val) >= 100:
-            QtWidgets.QMessageBox.about(MainWindow, "Success", "Предобработка данных завершилась успешно!")
-            self.pbar_process.setVisible(False)
+        # if ceil(val) >= 100:
+        #     QtWidgets.QMessageBox.about(MainWindow, "Success", "Предобработка данных завершилась успешно!")
+        #     self.pbar_process.setVisible(False)
 
     # TABLE: Function for update separator button
     def updateSeparatorTable(self):
@@ -723,10 +738,15 @@ class Ui_MainWindow():
 
     # MODEL: Function to run model
     def runModel(self):
-        train_dataset = CustomDataset(torch.FloatTensor(self.x_train.values),
-                                      torch.FloatTensor(self.y_train.values))
-        val_dataset = CustomDataset(torch.FloatTensor(self.x_valid.values),
-                                    torch.FloatTensor(self.y_valid.values))
+        # train_dataset = CustomDataset(torch.FloatTensor(self.x_train.values),
+        #                               torch.FloatTensor(self.y_train.values))
+        # val_dataset = CustomDataset(torch.FloatTensor(self.x_valid.values),
+        #                             torch.FloatTensor(self.y_valid.values))
+
+        train_dataset = CustomDataset(torch.from_numpy(self.x_train.values).float(),
+                                          torch.from_numpy(self.y_train.values).long())
+        val_dataset = CustomDataset(torch.from_numpy(self.x_valid.values).float(),
+                                        torch.from_numpy(self.y_valid.values).long())
 
         if torch.cuda.is_available():
             device = "cuda"
@@ -734,12 +754,13 @@ class Ui_MainWindow():
             device = "cpu"
 
         # writer = SummaryWriter()
-        criterion_NN = BCEWithLogitsLoss()
+        # criterion_NN = BCEWithLogitsLoss()
+        criterion_NN = CrossEntropyLoss()
 
         if self.combobox_models.currentText() == "AE_NN":
             model_AE = AutoEncoder(in_features=self.x_train.shape[1]).to(device)
             model_NN = NN(in_features=model_AE.encoder.bottleneck_linear3.out_features,
-                          num_classes=1)
+                          num_classes=len(np.unique(self.y_valid.values)))
             criterion_AE = torch.nn.MSELoss()
 
             if self.optimizator_combobox.currentText() == "Adam":
@@ -771,7 +792,7 @@ class Ui_MainWindow():
             self.thread.start()
 
         elif self.combobox_models.currentText() == "NN":
-            model_NN = NN(in_features=self.x_train.shape[1], num_classes=1).to(device)
+            model_NN = NN(in_features=self.x_train.shape[1], num_classes=4).to(device)
 
             if self.optimizator_combobox.currentText() == "Adam":
                 optimizer_NN = Adam(model_NN.parameters(), lr=eval(self.learning_rate_lineEdit.text()))

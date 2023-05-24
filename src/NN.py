@@ -2,6 +2,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 from collections import OrderedDict
+import torch
 
 
 class CustomDataset(Dataset):
@@ -52,6 +53,11 @@ class NN(nn.Module):
 
         x = self.layer_5(x)
         return x
+    
+    def predict(self, x):
+        outputs = self.forward(x)
+        _, preds = torch.max(outputs, 1)
+        return preds
 
 
 class AutoEncoder(nn.Module):

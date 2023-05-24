@@ -8,7 +8,7 @@ Nan.html
 .idea
 app.ui
 runs
-plots
+#plots
 test_wells
 Train_without_test_wells.csv
 Markup.jpg

@@ -2,15 +2,12 @@ import torch
 from datetime import datetime
 from numpy import inf
 from rich import print
-# from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 
 # My imports
 from src.NN import CustomDataset, DataLoader
-from src.Metrics import binary_acc, multi_acc
 from utils.PlotGraphics import plotTrainValidCurve, plotTrainValidCurveAE
 from src.NN import NN, AutoEncoder
-import torch.nn as nn
 
 
 def train_and_validation(model,
@@ -36,6 +33,7 @@ def train_and_validation(model,
 
     model = model.to(device)
 
+    start = datetime.now()
     # Train
     for epoch in range(1, epochs + 1):
 
@@ -46,15 +44,18 @@ def train_and_validation(model,
             inputs = inputs.to(device)
             labels = labels.to(device)
 
+            labels = labels.reshape(labels.shape[0])
+
             optimizer.zero_grad()
             output = model(inputs)
 
-            # _, preds = torch.max(output, 1)
+            _, preds = torch.max(output, 1)
 
-            loss = criterion(output, labels.reshape(labels.shape[0]))
+            loss = criterion(output, labels) #.reshape(labels.shape[0]))
             #loss = criterion(torch.max(torch.nn.functional.softmax(output, dim=1), dim=1)[0].unsqueeze(1), labels)
             # acc = binary_acc(output, labels)
-            acc = multi_acc(output, labels)
+            # acc = multi_acc(output, labels)
+            acc = torch.sum(preds == labels.data) / inputs.size(0)
 
             loss.backward()
             optimizer.step()
@@ -77,12 +78,17 @@ def train_and_validation(model,
             inputs = inputs.to(device)
             labels = labels.to(device)
 
-            output = model(inputs)
+            labels = labels.reshape(labels.shape[0])
+
+            outputs = model(inputs)
 
             # loss = criterion(torch.max(torch.nn.functional.softmax(output, dim=1), dim=1)[0].unsqueeze(1), labels)
-            loss = criterion(output, labels.reshape(labels.shape[0]))
+            # loss = criterion(output, labels.reshape(labels.shape[0]))
+            loss = criterion(outputs, labels)
+            _, preds = torch.max(outputs, 1)
+            acc = torch.sum(preds == labels.data) / inputs.size(0)
             # acc = binary_acc(output, labels)
-            acc = multi_acc(output, labels)
+            # acc = multi_acc(output, labels)
 
             val_loss += loss.item()
             val_acc += acc.item()
@@ -111,6 +117,8 @@ def train_and_validation(model,
                    }
         if epoch % 5 == 0:
             plotTrainValidCurve(history, out_dir)
+    end = datetime.now()
+    print("Время обучения полносвязной сети: ", end - start)
     #
     # return history
 
@@ -140,6 +148,7 @@ def train_and_validation_autoencoder(model_AE: AutoEncoder,
     print("Начало обучения автоэкнодера...")
 
     # Train
+    start = datetime.now()
     for epoch in range(1, epochs_AE + 1):
 
         train_loss = 0
@@ -184,6 +193,8 @@ def train_and_validation_autoencoder(model_AE: AutoEncoder,
         if epoch % 5 == 0:
             plotTrainValidCurveAE(history, out_dir)
     print("")
+    end = datetime.now()
+    print("Время обучения автоэнкодера: ", end - start)
 
     # Train simple NN
     model_encoder = model_AE.encoder.to(device)

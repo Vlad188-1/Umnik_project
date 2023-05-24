@@ -376,6 +376,16 @@ class Ui_MainWindow():
         self.learning_rate_lineEdit.setText("0.0001")
         self.learning_rate_lineEdit.setAlignment(QtCore.Qt.AlignCenter)
 
+        # MODEL: Criterion
+        self.criterion_NN = QLabel(self.centralwidgetTrain)
+        self.criterion_NN.setText("Критерий NN")
+        self.criterion_NN.setGeometry(1050, 420, 200, 50)
+
+        self.criterion_NN_combobox = QComboBox(self.centralwidgetTrain)
+        self.criterion_NN_combobox.setGeometry(1150, 435, 150, 20)
+        self.criterion_NN_combobox.addItems(["CrossEntropy", "BinaryCrossEntropy"])
+        self.criterion_NN_combobox.setStyleSheet("""QLineEdit {border: 1px solid black;}""")
+
         # MODEL: Select model
         self.model_label = QLabel(self.centralwidgetTrain)
         self.model_label.setText("Архитектура модели")
@@ -755,7 +765,12 @@ class Ui_MainWindow():
 
         # writer = SummaryWriter()
         # criterion_NN = BCEWithLogitsLoss()
-        criterion_NN = CrossEntropyLoss()
+        if self.criterion_NN.text() == "CrossEntropy":
+            criterion_NN = CrossEntropyLoss()
+        elif self.criterion_NN.text() == "BinaryCrossEntropy":
+            criterion_NN = BCEWithLogitsLoss()
+        else:
+            criterion_NN = CrossEntropyLoss()
 
         if self.combobox_models.currentText() == "AE_NN":
             model_AE = AutoEncoder(in_features=self.x_train.shape[1]).to(device)
@@ -787,6 +802,8 @@ class Ui_MainWindow():
                                "optimizer_NN": optimizer_NN,
                                "out_dir": self.project_path,
                                "scheduler": None}
+
+            print(training_params)
 
             self.thread = TrainModel(train_and_validation_autoencoder, training_params)
             self.thread.start()

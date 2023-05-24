@@ -1,9 +1,12 @@
 pandas
 plotly
-pyqt5
-pyqtwebengine
+#pyqt5
+#pyqtwebengine
 scikit-learn
 torch
 torchvision
 rich
 tqdm
+PyYAML
+opencv-python
+tensorboard

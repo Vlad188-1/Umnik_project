@@ -1,14 +1,10 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QPixmap
 import pandas as pd
-from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 import yaml
 from pathlib import Path
-import shutil
 
 import torch
-import tempfile
 import cv2
 from sklearn.metrics import classification_report
 
@@ -200,7 +196,6 @@ class TestDataWindow(QtWidgets.QMainWindow):
                              )
 
     def showResult(self):
-
         def resize_image(image, window_height=500):
             aspect_ratio = float(image.shape[1]) / float(image.shape[0])
             window_width = window_height / aspect_ratio

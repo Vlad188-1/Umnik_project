@@ -66,9 +66,6 @@ class TestDataWindow(QtWidgets.QMainWindow):
         self.depthCombobox = QtWidgets.QComboBox(self.centralwidget)
         self.depthCombobox.setGeometry(10, 210, 150, 50)
 
-        # self.listFeaturesLabel = QtWidgets.QLabel(self.centralwidget)
-        # self.listFeaturesLabel.setText("<b>Итоговый список фичей</b>")
-        # self.listFeaturesLabel.setGeometry(15, 260, 200, 50)
         self.variableForMarkup = QtWidgets.QLabel(self.centralwidget)
         self.variableForMarkup.setText("<b>Выбрать переменную, по которой будет строиться разметка</b>")
         self.variableForMarkup.setWordWrap(True)
@@ -77,14 +74,23 @@ class TestDataWindow(QtWidgets.QMainWindow):
         self.markupVariableCombobox = QtWidgets.QComboBox(self.centralwidget)
         self.markupVariableCombobox.setGeometry(10, 300, 150, 50)
 
+        self.device_label = QtWidgets.QLabel(self.centralwidget)
+        self.device_label.setText("<b>Вычислитель")
+        self.device_label.setGeometry(10, 350, 200, 30)
+
+        self.combobox_devices = QtWidgets.QComboBox(self.centralwidget)
+        self.combobox_devices.setGeometry(110, 343, 100, 50)
+        self.combobox_devices.addItems(["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"])
+        self.combobox_devices.setCurrentIndex(0)
+
         self.testButton = QtWidgets.QPushButton(self.centralwidget)
-        self.testButton.setGeometry(10, 350, 250, 30)
+        self.testButton.setGeometry(10, 400, 250, 30)
         self.testButton.setText("Начать тестирование")
         self.testButton.clicked.connect(self.startTest)
         self.testButton.setStyleSheet(Constants.UPDATE_TABLE_BUTTON_STYLE)
 
         self.testButtonMarkup = QtWidgets.QPushButton(self.centralwidget)
-        self.testButtonMarkup.setGeometry(10, 400, 250, 30)
+        self.testButtonMarkup.setGeometry(10, 450, 250, 30)
         self.testButtonMarkup.setText("Отобразить результаты разметки")
         self.testButtonMarkup.clicked.connect(self.showResult)
         self.testButtonMarkup.setStyleSheet(Constants.UPDATE_TABLE_BUTTON_STYLE)
@@ -174,7 +180,8 @@ class TestDataWindow(QtWidgets.QMainWindow):
         self.x_test = self.data.drop(
             [self.comboboxSelectTargetVariable.currentText(), self.depthCombobox.currentText()], axis=1)
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = self.combobox_devices.customEvent()
 
         if (self.x_test is not None) and (self.y_test is not None):
             self.x_test = torch.from_numpy(self.x_test.values).to(torch.float32)
@@ -197,11 +204,12 @@ class TestDataWindow(QtWidgets.QMainWindow):
                              )
 
     def showResult(self):
-        def resize_image(image, window_height=500):
-            aspect_ratio = float(image.shape[1]) / float(image.shape[0])
-            window_width = window_height / aspect_ratio
-            image = cv2.resize(image, (int(window_height), int(window_width)))
-            return image
+        pass
+        # def resize_image(image, window_height=500):
+        #     aspect_ratio = float(image.shape[1]) / float(image.shape[0])
+        #     window_width = window_height / aspect_ratio
+        #     image = cv2.resize(image, (int(window_height), int(window_width)))
+        #     return image
 
         # image = cv2.imread("/Users/vladislavefremov/Disk/Vlad/Гугл диск/Диск/Диплом/Папка с кодами/Для написания в диплом/Umnik_project/Markup.jpg")
         # image = resize_image(image, window_height=400)

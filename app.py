@@ -396,6 +396,16 @@ class Ui_MainWindow():
         self.combobox_models.addItems(["NN", "AE_NN"])
         self.combobox_models.setCurrentIndex(1)
 
+        # MODEL: Select device
+        self.device_label = QLabel(self.centralwidgetTrain)
+        self.device_label.setText("Вычислитель")
+        self.device_label.setGeometry(1050, 480, 200, 30)
+
+        self.combobox_devices = QComboBox(self.centralwidgetTrain)
+        self.combobox_devices.setGeometry(1150, 473, 100, 50)
+        self.combobox_devices.addItems(["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"])
+        self.combobox_devices.setCurrentIndex(0)
+
         # MODEL: Run model
         self.button_runModel = QPushButton(self.centralwidgetTrain)
         self.button_runModel.setGeometry(760, 480, 200, 30)
@@ -758,10 +768,11 @@ class Ui_MainWindow():
         val_dataset = CustomDataset(torch.from_numpy(self.x_valid.values).float(),
                                         torch.from_numpy(self.y_valid.values).long())
 
-        if torch.cuda.is_available():
-            device = "cuda"
-        else:
-            device = "cpu"
+        device = self.combobox_devices.currentText()
+        # if torch.cuda.is_available():
+        #     device = "cuda"
+        # else:
+        #     device = "cpu"
 
         # writer = SummaryWriter()
         # criterion_NN = BCEWithLogitsLoss()
@@ -831,9 +842,9 @@ class Ui_MainWindow():
             self.thread.start()
 
     # INFERENCE: Button to open config.yaml
-    def loadConfigFile(self):
-        config_name, _ = QtWidgets.QFileDialog.getOpenFileName(filter="*.csv")
-        pass
+    # def loadConfigFile(self):
+    #     config_name, _ = QtWidgets.QFileDialog.getOpenFileName(filter="*.csv")
+    #     pass
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

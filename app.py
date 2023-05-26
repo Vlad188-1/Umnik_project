@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QPushButton, QLabel, QLineEdit, QComboBox
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+# from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 # My imports
 from utils.AdditionalWindows import FeatureEngineWindow, DeleteNanWindow, TestDataWindow
@@ -109,7 +109,7 @@ class Ui_MainWindow():
         self.tabs.addTab(self.centralwidgetInference, "Инференс моделей")
         # MainWindow.setCentralWidget(self.tabs)
 
-        self.web = QWebEngineView(self.centralwidgetTrain)
+        # self.web = QWebEngineView(self.centralwidgetTrain)
 
         # self.web = QWebEngineView(self.centralwidget)
         # self.browser = QtWebEngineWidgets.QWebEngineView(self.centralwidget)
@@ -645,8 +645,8 @@ class Ui_MainWindow():
         Plots.plotDistributedTargetVariable(y)
         # file_path = Path("plots", "TargetVariable.html")
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "plots/TargetVariable.html"))
-        self.web.load(QtCore.QUrl.fromLocalFile(file_path))
-        self.web.show()
+        # self.web.load(QtCore.QUrl.fromLocalFile(file_path))
+        # self.web.show()
 
     # TABLE: Function to save prepared dataset
     def SavePreparedDataset(self):

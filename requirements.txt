@@ -8,5 +8,8 @@ torchvision
 rich
 tqdm
 PyYAML
-opencv-python
+# opencv-python
 tensorboard
+PyQt5
+PyQtWebEngine
+kaleido

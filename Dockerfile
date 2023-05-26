@@ -1,26 +1,31 @@
 # установка базового образа (host OS)
-FROM python:3.10
-RUN apt update && apt install -y libgl1-mesa-glx libpci3 libasound2
+FROM ubuntu:22.04
+RUN apt update && apt -y install sudo
 
-WORKDIR /home/app
-COPY ./ /home/app
+## создание пользователя vlad
+RUN adduser --disabled-password --gecos "" vlad && \
+    usermod -aG sudo vlad && \
+    echo "%sudo  ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/nopasswd
 
-RUN cd /home && wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh \
-    && chmod +x Miniconda3-latest-Linux-aarch64.sh \
-    && ./Miniconda3-latest-Linux-aarch64.sh -b -p /home/miniconda3 \
+WORKDIR /home/vlad
+USER vlad
+CMD bash
+
+## установка пакетов для linux и корректной работы GUI
+RUN sudo apt update && sudo apt install -y libgl1-mesa-glx libpci3 libasound2 \
+    '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev  \
+    libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libglib2.0-0 libfontconfig1 libdbus-1-3 wget
+
+WORKDIR /home/vlad
+COPY ./ /home/vlad/app
+RUN sudo chown -R vlad /home/vlad/app
+
+## скачивание и установка miniconda, устанвика pyqt и других библиотек
+RUN cd /home/vlad && wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && chmod +x Miniconda3-latest-Linux-x86_64.sh \
+    && ./Miniconda3-latest-Linux-x86_64.sh -b -p /home/vlad/miniconda3 \
     && /bin/bash -c "source ./miniconda3/etc/profile.d/conda.sh && conda activate base && conda init bash && \
-                    conda install -c anaconda pyqt && conda install pip && conda install -c conda-forge pyqtwebengine && \
-                    conda install pip && pip install -r /home/app/requirements.txt" \
-#WORKDIR /home/app
-#COPY ./ /home/app
-#RUN pip install -r /home/app/requirements.txt
-# установка рабочей директории в контейнере
-#WORKDIR /app
-## копирование файла зависимостей в рабочую директорию
-#COPY requirements.txt .
-## установка зависимостей
-#RUN pip install -r requirements.txt
-## копирование содержимого локальной директории src в рабочую директорию
-#COPY ./ .
+                    conda install -c anaconda pyqt && \
+                    conda install pip && pip install -r /home/vlad/app/requirements.txt" \
 ## команда, выполняемая при запуске контейнера
-#CMD [ "python3", "./app.py" ]
+CMD [ "python3", "./app/app.py" ]

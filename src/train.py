@@ -200,8 +200,8 @@ def train_and_validation_autoencoder(model_AE: AutoEncoder,
     model_encoder = model_AE.encoder.to(device)
 
     with torch.no_grad():
-        x_train_encoder = model_encoder(train_dataset.x_data)
-        x_val_encoder = model_encoder(val_dataset.x_data)
+        x_train_encoder = model_encoder(train_dataset.x_data.to(device))
+        x_val_encoder = model_encoder(val_dataset.x_data.to(device))
 
     train_dataset_encoder = CustomDataset(x_train_encoder, train_dataset.y_data)
     val_dataset_encoder = CustomDataset(x_val_encoder, val_dataset.y_data)

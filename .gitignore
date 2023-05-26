@@ -27,3 +27,7 @@ test_wells_multiclass
 Train_without_test_wells.csv
 Train_without_test_wells_multiclass.csv
 Results
+tets_wells
+app.spec
+build
+dist

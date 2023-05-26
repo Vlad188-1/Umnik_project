@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+# from PyQt5.QtWebEngineWidgets import QWebEngineView
 import os
 
 from utils import Constants
@@ -23,7 +23,7 @@ class DeleteNanWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.centralwidget)
         self.setCentralWidget(self.centralwidget)
 
-        self.web = QWebEngineView(self.centralwidget)
+        # self.web = QWebEngineView(self.centralwidget)
 
         self.show_button = QtWidgets.QPushButton(self.centralwidget)
         self.show_button.setText("Распределение NaN значений")
@@ -70,8 +70,8 @@ class DeleteNanWindow(QtWidgets.QMainWindow):
         if self.data is not None:
             Plots.plotDistributionNanValues(self.data)
             file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../plots", "Nan.html"))
-            self.web.load(QtCore.QUrl.fromLocalFile(file_path))
-            self.web.show()
+            # self.web.load(QtCore.QUrl.fromLocalFile(file_path))
+            # self.web.show()
         else:
             QtWidgets.QMessageBox.about(self, "ERROR", "Ошибка!")
 

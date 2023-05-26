@@ -11,7 +11,7 @@ class Process(QThread):
         super(QThread, self).__init__()
         self.data = data
 
-    def run(self) -> pd.DataFrame | None:
+    def run(self):
         cnt = 0
         if self.data is not None:
             # Replace decimal comma to dot and convert it

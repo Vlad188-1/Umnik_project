@@ -1,11 +1,11 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+# from PyQt5.QtWebEngineWidgets import QWebEngineView
 import yaml
 from pathlib import Path
 
 import torch
-import cv2
+# import cv2
 from sklearn.metrics import classification_report
 
 # My imports
@@ -42,7 +42,7 @@ class TestDataWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.centralwidget)
         self.setCentralWidget(self.centralwidget)
 
-        self.web = QWebEngineView(self.centralwidget)
+        # self.web = QWebEngineView(self.centralwidget)
 
         self.button_open_yaml = QtWidgets.QPushButton(self.centralwidget)
         self.button_open_yaml.setGeometry(10, 10, 250, 50)
@@ -181,11 +181,12 @@ class TestDataWindow(QtWidgets.QMainWindow):
             self.AE_model = self.AE_model.to(device)
             self.NN_model = self.NN_model.to(device)
 
-            x_test_encoder = self.AE_model.encoder(self.x_test)
-            outputs = self.NN_model(x_test_encoder)
-            y_pred = torch.sigmoid(outputs).cpu().detach().numpy()
+            x_test_encoder = self.AE_model.encoder(self.x_test.to(device))
+            # outputs = self.NN_model(x_test_encoder)
+            y_pred = self.NN_model.predict(x_test_encoder).cpu().detach().numpy()
+            # y_pred = torch.sigmoid(outputs).cpu().detach().numpy()
 
-            classification_report(self.y_test, y_pred.round(), target_names=["no_oil", "oil"])
+            classification_report(self.y_test, y_pred.round()) #, target_names=["no_oil", "oil"])
 
             print("Построение Precision-Recall кривой")
             plot_curve_testing(self.y_test, y_pred)
@@ -202,11 +203,11 @@ class TestDataWindow(QtWidgets.QMainWindow):
             image = cv2.resize(image, (int(window_height), int(window_width)))
             return image
 
-        image = cv2.imread("/Users/vladislavefremov/Disk/Vlad/Гугл диск/Диск/Диплом/Папка с кодами/Для написания в диплом/Umnik_project/Markup.jpg")
-        image = resize_image(image, window_height=400)
-        image = QtGui.QImage(image, image.shape[1], image.shape[0], image.shape[1] * 3, QtGui.QImage.Format_BGR888)
-        self.im = QtGui.QPixmap(image)
-        self.label.setPixmap(self.im)
+        # image = cv2.imread("/Users/vladislavefremov/Disk/Vlad/Гугл диск/Диск/Диплом/Папка с кодами/Для написания в диплом/Umnik_project/Markup.jpg")
+        # image = resize_image(image, window_height=400)
+        # image = QtGui.QImage(image, image.shape[1], image.shape[0], image.shape[1] * 3, QtGui.QImage.Format_BGR888)
+        # self.im = QtGui.QPixmap(image)
+        # self.label.setPixmap(self.im)
 
     def displayInfo(self):
         # self.data = data

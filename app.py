@@ -623,7 +623,7 @@ class Ui_MainWindow():
 
     def OpenTestDataWindow(self):
         # if self.data is not None:
-        self.testWindow = TestDataWindow(self.data.copy() if self.data is not None else self.data)
+        self.testWindow = TestDataWindow(self.data.copy() if self.data is not None else self.data, self.filename)
         # self.testWindow.submitClicked.connect(self.confirmChanges)
         self.testWindow.displayInfo()
         # else:
@@ -774,7 +774,7 @@ class Ui_MainWindow():
         # else:
         #     device = "cpu"
 
-        # writer = SummaryWriter()
+        writer = SummaryWriter()
         # criterion_NN = BCEWithLogitsLoss()
         if self.criterion_NN.text() == "CrossEntropy":
             criterion_NN = CrossEntropyLoss()

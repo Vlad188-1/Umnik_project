@@ -3,11 +3,29 @@ from datetime import datetime
 from numpy import inf
 from rich import print
 from pathlib import Path
+from sklearn.metrics import confusion_matrix
+import numpy as np
 
 # My imports
 from src.NN import CustomDataset, DataLoader
 from utils.PlotGraphics import plotTrainValidCurve, plotTrainValidCurveAE
 from src.NN import NN, AutoEncoder
+from utils.plot_confusion_matrix import plot_confusion_matrix
+
+
+def create_confusin_matrix(y_valid_AE_NN, preds_AE_NN, names_classes, out_dir):
+    cm = confusion_matrix(y_valid_AE_NN, preds_AE_NN)
+    cm = cm * 100
+    figure, ax = plot_confusion_matrix(conf_mat=cm,
+                                       class_names=names_classes,
+                                       show_absolute=False,
+                                       show_normed=True,
+                                       colorbar=True,
+                                       figsize=(16, 6),
+                                       # cmap=plt.cm.rainbow_r,
+                                       # norm_colormap=matplotlib.colors.LogNorm(),
+                                       show_in_percent=True)
+    figure.savefig(Path(out_dir, "confusion_matrix.jpg"), dpi=1000)
 
 
 def train_and_validation(model,
@@ -25,8 +43,7 @@ def train_and_validation(model,
     all_train_accuracy = []
     all_val_accuracy = []
     best_loss = inf
-
-    # criterion = nn.CrossEntropyLoss(reduction="sum")
+    best_model = None
 
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
@@ -46,19 +63,15 @@ def train_and_validation(model,
 
             labels = labels.reshape(labels.shape[0])
 
-            optimizer.zero_grad()
             output = model(inputs)
-
             _, preds = torch.max(output, 1)
 
-            loss = criterion(output, labels) #.reshape(labels.shape[0]))
-            #loss = criterion(torch.max(torch.nn.functional.softmax(output, dim=1), dim=1)[0].unsqueeze(1), labels)
-            # acc = binary_acc(output, labels)
-            # acc = multi_acc(output, labels)
+            loss = criterion(output, labels)
             acc = torch.sum(preds == labels.data) / inputs.size(0)
 
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
 
             train_loss += loss.item()
             train_acc += acc.item()
@@ -79,16 +92,11 @@ def train_and_validation(model,
             labels = labels.to(device)
 
             labels = labels.reshape(labels.shape[0])
-
             outputs = model(inputs)
 
-            # loss = criterion(torch.max(torch.nn.functional.softmax(output, dim=1), dim=1)[0].unsqueeze(1), labels)
-            # loss = criterion(output, labels.reshape(labels.shape[0]))
             loss = criterion(outputs, labels)
             _, preds = torch.max(outputs, 1)
             acc = torch.sum(preds == labels.data) / inputs.size(0)
-            # acc = binary_acc(output, labels)
-            # acc = multi_acc(output, labels)
 
             val_loss += loss.item()
             val_acc += acc.item()
@@ -108,6 +116,7 @@ def train_and_validation(model,
         if val_loss_per_batch < best_loss:
             best_loss = val_loss_per_batch
             model_path = Path(out_dir, f'best_model_NN.pt')
+            best_model = model
             torch.save(model, model_path)
 
         history = {"train_loss": all_train_loss,
@@ -118,7 +127,9 @@ def train_and_validation(model,
         if epoch % 5 == 0:
             plotTrainValidCurve(history, out_dir)
     end = datetime.now()
-    print("Время обучения полносвязной сети: ", end - start)
+
+    print("\nВремя обучения полносвязной сети: ", end - start)
+    return best_model
     #
     # return history
 
@@ -156,12 +167,12 @@ def train_and_validation_autoencoder(model_AE: AutoEncoder,
         for inputs, _ in train_dataloader:
             inputs = inputs.to(device)
 
-            optimizer_AE.zero_grad()
             output = model_AE(inputs)
 
             loss = criterion_AE(output, inputs)
             loss.backward()
             optimizer_AE.step()
+            optimizer_AE.zero_grad()
             train_loss += loss.item()
         train_loss_per_batch = train_loss / len(train_dataloader)
         all_train_AE_loss.append(train_loss_per_batch)
@@ -206,12 +217,8 @@ def train_and_validation_autoencoder(model_AE: AutoEncoder,
     train_dataset_encoder = CustomDataset(x_train_encoder, train_dataset.y_data)
     val_dataset_encoder = CustomDataset(x_val_encoder, val_dataset.y_data)
 
-    # model_NN = NN(in_features=x_train_encoder.shape[1], num_classes=1).to(device)
-
-    # optimizer = Adam(model_NN.parameters(), lr=0.0001)
-
     print("[bold white]Начало обучения полносвязной сети...")
-    train_and_validation(model=model_NN,
+    best_model_NN = train_and_validation(model=model_NN,
                          train_dataset=train_dataset_encoder,
                          val_dataset=val_dataset_encoder,
                          batch_size=batch_size,
@@ -220,3 +227,9 @@ def train_and_validation_autoencoder(model_AE: AutoEncoder,
                          criterion=criterion_NN,
                          optimizer=optimizer_NN,
                          out_dir=out_dir)
+
+    print("Построение матрицы различий...")
+    preds_AE_NN = best_model_NN.predict(x_val_encoder.float())
+    names_classes = [str(i) for i in np.unique(train_dataset.y_data)]
+    create_confusin_matrix(val_dataset.y_data, preds_AE_NN, names_classes, out_dir)
+

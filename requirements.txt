@@ -10,6 +10,6 @@ tqdm
 PyYAML
 # opencv-python
 tensorboard
-PyQt5
-PyQtWebEngine
+# PyQt5
+# PyQtWebEngine
 kaleido

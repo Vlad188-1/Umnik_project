@@ -7,20 +7,28 @@ from pathlib import Path
 import torch
 # import cv2
 from sklearn.metrics import classification_report
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import datetime
 
 # My imports
 from src import NN, AutoEncoder
 from utils.plots import plot_test_markup, plot_curve_testing
 from utils import Constants
 
+# Plotting
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+
 
 class TestDataWindow(QtWidgets.QMainWindow):
     # submitClicked = QtCore.pyqtSignal(pd.DataFrame)
 
-    def __init__(self, data):
+    def __init__(self, data, path_to_file):
         super().__init__()
 
         self.data: pd.DataFrame = data
+        self.path_to_file: str = path_to_file
         self.x_test: pd.DataFrame = pd.DataFrame({})
         self.y_test: pd.Series = pd.Series({})
         self.temp_dir = Path(__file__).parent / "temp_dir_191j1"
@@ -175,23 +183,29 @@ class TestDataWindow(QtWidgets.QMainWindow):
 
     def startTest(self):
 
+        # Create directory with results
+        # start = datetime.now()
+        dir_results = Path(self.path_to_file).parent / "results"
+        dir_results.mkdir(exist_ok=True)
+
         self.data.sort_index(axis=1, inplace=True)
         self.y_test = self.data[self.comboboxSelectTargetVariable.currentText()].values
         self.x_test = self.data.drop(
             [self.comboboxSelectTargetVariable.currentText(), self.depthCombobox.currentText()], axis=1)
 
         # device = "cuda" if torch.cuda.is_available() else "cpu"
-        device = self.combobox_devices.customEvent()
+        device = self.combobox_devices.currentText()
 
         if (self.x_test is not None) and (self.y_test is not None):
             self.x_test = torch.from_numpy(self.x_test.values).to(torch.float32)
             self.AE_model = self.AE_model.to(device)
             self.NN_model = self.NN_model.to(device)
 
+            start = datetime.now()
             x_test_encoder = self.AE_model.encoder(self.x_test.to(device))
-            # outputs = self.NN_model(x_test_encoder)
             y_pred = self.NN_model.predict(x_test_encoder).cpu().detach().numpy()
-            # y_pred = torch.sigmoid(outputs).cpu().detach().numpy()
+            end = datetime.now()
+            print("Время инференса: ", end - start)
 
             classification_report(self.y_test, y_pred.round()) #, target_names=["no_oil", "oil"])
 
@@ -200,11 +214,24 @@ class TestDataWindow(QtWidgets.QMainWindow):
             plot_test_markup(self.data[[self.markupVariableCombobox.currentText(), self.depthCombobox.currentText()]],
                              self.y_test, y_pred,
                              depth_name=self.depthCombobox.currentText(),
-                             variable_for_markup=self.markupVariableCombobox.currentText()
+                             variable_for_markup=self.markupVariableCombobox.currentText(),
+                             out_dir=dir_results
                              )
+        # end = datetime.now()
+        # print("Время инференса одной скважины: ", end-start)
 
     def showResult(self):
-        pass
+        fig = plt.figure()
+        x = np.arange(0, 10, 0.1)
+        y = np.sin(x)
+
+        plt.plot(x, y)
+        plt.show()
+        plt.show()
+
+        # Построение матрицы различий
+
+        # pass
         # def resize_image(image, window_height=500):
         #     aspect_ratio = float(image.shape[1]) / float(image.shape[0])
         #     window_width = window_height / aspect_ratio
